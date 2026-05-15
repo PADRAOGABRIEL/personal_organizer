@@ -37,3 +37,4 @@ create index tasks_project_id_idx on tasks(project_id);
 -- Index for calendar range queries
 create index tasks_due_date_idx on tasks(due_date);
 create index calendar_events_start_time_idx on calendar_events(start_time);
+create index calendar_events_project_id_idx on calendar_events(project_id);
