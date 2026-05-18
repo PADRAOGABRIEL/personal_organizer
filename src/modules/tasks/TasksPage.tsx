@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { TopBar } from '../../components/layout/TopBar'
 import { TaskFilterBar, type TaskFilter } from './TaskFilterBar'
 import { TaskList } from './TaskList'
+import { TaskDetailPanel } from './TaskDetailPanel'
 import { useTasks, groupTasksByHorizon, useUpdateTask } from './useTasks'
 import { supabase } from '../../lib/supabase'
 import type { Task, Project } from '../../types'
@@ -59,11 +60,12 @@ export function TasksPage() {
             filter !== 'all' && filter !== 'today' && filter !== 'this-week' ? filter : null
           }
         />
-        {/* TaskDetailPanel added in Task 10 */}
         {selectedTask && (
-          <aside className="w-80 bg-slate-800 border-l border-slate-700 flex items-center justify-center text-slate-500 text-sm">
-            Detail panel coming in Task 10
-          </aside>
+          <TaskDetailPanel
+            task={selectedTask}
+            projects={projects}
+            onClose={() => setSelectedTask(null)}
+          />
         )}
       </div>
     </div>

@@ -14,7 +14,7 @@ interface TaskListProps {
   projectId?: string | null
 }
 
-export function TaskList({ groups, allTasks, projects, filter, onToggle, onSelect, projectId }: TaskListProps) {
+export function TaskList({ groups, allTasks: _allTasks, projects, filter, onToggle, onSelect, projectId }: TaskListProps) {
   const visibleGroups = getVisibleGroups(groups, filter)
 
   if (visibleGroups.every(g => g.tasks.length === 0)) {
