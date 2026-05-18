@@ -59,8 +59,10 @@ export function getItemsForDay(
 }
 
 export function useCalendarData(year: number, month: number) {
-  const startDate = new Date(year, month, 1).toISOString()
-  const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const startDate = `${year}-${pad(month)}-01T00:00:00`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endDate = `${year}-${pad(month)}-${pad(lastDay)}T23:59:59`
 
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
