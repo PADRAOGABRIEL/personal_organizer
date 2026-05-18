@@ -16,7 +16,8 @@ export interface CalendarItem {
 }
 
 export function getCalendarDays(year: number, month: number): CalendarDay[] {
-  const today = new Date().toISOString().split('T')[0]
+  const todayObj = new Date()
+  const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth()+1).padStart(2,'0')}-${String(todayObj.getDate()).padStart(2,'0')}`
   const firstDay = new Date(year, month, 1)
   // Adjust so week starts on Monday (0=Mon, 6=Sun)
   const startDow = (firstDay.getDay() + 6) % 7
@@ -31,7 +32,7 @@ export function getCalendarDays(year: number, month: number): CalendarDay[] {
   for (let i = 0; i < weeks * 7; i++) {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
     days.push({
       date: dateStr,
       isCurrentMonth: d.getMonth() === month,

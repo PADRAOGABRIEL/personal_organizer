@@ -18,14 +18,18 @@ export function AddEventModal({ date, projects, onClose }: AddEventModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    await create.mutateAsync({
-      title: title.trim(),
-      start_time: allDay ? `${date}T00:00:00Z` : new Date(startTime).toISOString(),
-      end_time: null,
-      all_day: allDay,
-      project_id: projectId || null,
-    })
-    onClose()
+    try {
+      await create.mutateAsync({
+        title: title.trim(),
+        start_time: allDay ? `${date}T00:00:00Z` : new Date(startTime).toISOString(),
+        end_time: null,
+        all_day: allDay,
+        project_id: projectId || null,
+      })
+      onClose()
+    } catch {
+      // error state is available via create.isError / create.error
+    }
   }
 
   return (
@@ -72,6 +76,9 @@ export function AddEventModal({ date, projects, onClose }: AddEventModalProps) {
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
+          {create.isError && (
+            <p className="text-red-400 text-sm">Failed to create event. Please try again.</p>
+          )}
           <div className="flex gap-2 justify-end mt-1">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
             <button

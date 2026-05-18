@@ -13,7 +13,7 @@ export function CalendarPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
   const [selectedDay, setSelectedDay] = useState<string | null>(
-    now.toISOString().split('T')[0]
+    `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
   )
   const [showAddEvent, setShowAddEvent] = useState(false)
 
