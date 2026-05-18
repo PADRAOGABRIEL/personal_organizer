@@ -1,4 +1,5 @@
 import { getCalendarDays, type CalendarItem } from './useCalendar'
+import type { Project } from '../../types'
 
 const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -8,9 +9,10 @@ interface MonthGridProps {
   items: Record<string, CalendarItem[]>   // date -> items
   selectedDay: string | null
   onSelectDay: (date: string) => void
+  projects: Project[]
 }
 
-export function MonthGrid({ year, month, items, selectedDay, onSelectDay }: MonthGridProps) {
+export function MonthGrid({ year, month, items, selectedDay, onSelectDay, projects }: MonthGridProps) {
   const days = getCalendarDays(year, month)
 
   return (
@@ -45,14 +47,18 @@ export function MonthGrid({ year, month, items, selectedDay, onSelectDay }: Mont
               </span>
               {/* Dots */}
               <div className="flex flex-wrap gap-0.5 mt-0.5 px-0.5">
-                {dayItems.slice(0, 3).map(item => (
-                  <span
-                    key={item.id}
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-400"
-                  />
-                ))}
+                {dayItems.slice(0, 3).map(item => {
+                  const color = projects.find(p => p.id === item.projectId)?.color ?? '#6366f1'
+                  return (
+                    <span
+                      key={item.id}
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                  )
+                })}
                 {dayItems.length > 3 && (
-                  <span className="text-slate-500 text-[9px]">+{dayItems.length - 3}</span>
+                  <span className="text-slate-500 text-[9px]">+{dayItems.length - 3} more</span>
                 )}
               </div>
             </button>

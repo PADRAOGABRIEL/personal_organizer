@@ -71,6 +71,7 @@ export function CalendarPage() {
           items={itemsMap}
           selectedDay={selectedDay}
           onSelectDay={setSelectedDay}
+          projects={projects}
         />
         {selectedDay && (
           <DayPanel
@@ -83,7 +84,7 @@ export function CalendarPage() {
       </div>
       {showAddEvent && selectedDay && (
         <AddEventModal
-          defaultDate={selectedDay}
+          date={selectedDay ?? ''}
           projects={projects}
           onClose={() => setShowAddEvent(false)}
         />

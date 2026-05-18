@@ -3,14 +3,14 @@ import { useCreateCalendarEvent } from './useCalendar'
 import type { Project } from '../../types'
 
 interface AddEventModalProps {
-  defaultDate: string
+  date: string
   projects: Project[]
   onClose: () => void
 }
 
-export function AddEventModal({ defaultDate, projects, onClose }: AddEventModalProps) {
+export function AddEventModal({ date, projects, onClose }: AddEventModalProps) {
   const [title, setTitle] = useState('')
-  const [startTime, setStartTime] = useState(`${defaultDate}T09:00`)
+  const [startTime, setStartTime] = useState(`${date}T09:00`)
   const [allDay, setAllDay] = useState(false)
   const [projectId, setProjectId] = useState('')
   const create = useCreateCalendarEvent()
@@ -20,7 +20,7 @@ export function AddEventModal({ defaultDate, projects, onClose }: AddEventModalP
     if (!title.trim()) return
     await create.mutateAsync({
       title: title.trim(),
-      start_time: allDay ? `${defaultDate}T00:00:00Z` : new Date(startTime).toISOString(),
+      start_time: allDay ? `${date}T00:00:00Z` : new Date(startTime).toISOString(),
       end_time: null,
       all_day: allDay,
       project_id: projectId || null,
