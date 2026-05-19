@@ -1,0 +1,22 @@
+
+> personal_organizer@0.0.0 test
+> vitest --passWithNoTests src/modules/tasks/useTasks.test.ts --reporter=verbose
+
+
+ DEV  v1.6.1 /mnt/c/Users/padra/Projetos/personal_organizer
+
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > groups overdue tasks
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > groups today tasks
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > groups this-week tasks (tomorrow through 7 days out)
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > groups later tasks (>7 days)
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > groups tasks with no due date separately
+ ✓ src/modules/tasks/useTasks.test.ts > groupTasksByHorizon > excludes done tasks from all groups
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  13:12:24
+   Duration  24.78s (transform 130ms, setup 1.34s, collect 647ms, tests 3ms, environment 6.51s, prepare 2.49s)
+
+
+ PASS  Waiting for file changes...
+       press h to show help, press q to quit

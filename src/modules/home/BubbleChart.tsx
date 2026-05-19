@@ -169,7 +169,7 @@ export function BubbleChart({ projects }: BubbleChartProps) {
   return (
     <svg
       ref={svgRef}
-      className="w-full h-full"
+      className="absolute inset-0 w-full h-full"
       aria-label="Project bubble chart"
     />
   )

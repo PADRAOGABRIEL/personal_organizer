@@ -4,6 +4,7 @@ import { AppShell } from './components/layout/AppShell'
 import { HomePage } from './modules/home/HomePage'
 import { TasksPage } from './modules/tasks/TasksPage'
 import { CalendarPage } from './modules/calendar/CalendarPage'
+import { SettingsPage } from './modules/settings/SettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +21,7 @@ export default function App() {
             <Route index element={<HomePage />} />
             <Route path="tasks" element={<TasksPage />} />
             <Route path="calendar" element={<CalendarPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

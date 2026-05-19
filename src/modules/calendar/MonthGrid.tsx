@@ -25,7 +25,7 @@ export function MonthGrid({ year, month, items, selectedDay, onSelectDay, projec
       </div>
 
       {/* Day grid */}
-      <div className="grid grid-cols-7 gap-1 flex-1">
+      <div className="grid grid-cols-7 grid-rows-6 gap-1 flex-1">
         {days.map(day => {
           const dayItems = items[day.date] ?? []
           const isSelected = day.date === selectedDay
@@ -45,20 +45,22 @@ export function MonthGrid({ year, month, items, selectedDay, onSelectDay, projec
               `}>
                 {new Date(day.date + 'T00:00:00').getDate()}
               </span>
-              {/* Dots */}
-              <div className="flex flex-wrap gap-0.5 mt-0.5 px-0.5">
+              {/* Task/event labels */}
+              <div className="flex flex-col gap-0.5 mt-0.5 w-full">
                 {dayItems.slice(0, 3).map(item => {
                   const color = projects.find(p => p.id === item.projectId)?.color ?? '#6366f1'
                   return (
                     <span
                       key={item.id}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
+                      className="block truncate rounded text-[10px] leading-4 px-1"
+                      style={{ backgroundColor: color + '33', color }}
+                    >
+                      {item.title}
+                    </span>
                   )
                 })}
                 {dayItems.length > 3 && (
-                  <span className="text-slate-500 text-[9px]">+{dayItems.length - 3} more</span>
+                  <span className="text-slate-500 text-[9px] px-1">+{dayItems.length - 3} more</span>
                 )}
               </div>
             </button>

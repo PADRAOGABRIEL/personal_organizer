@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
+import { syncTaskToCalendar } from '../../lib/googleCalendar'
 import type { Task } from '../../types'
 
 export interface TaskGroups {
@@ -8,6 +9,7 @@ export interface TaskGroups {
   thisWeek: Task[]
   later: Task[]
   noDueDate: Task[]
+  completed: Task[]
 }
 
 export function groupTasksByHorizon(tasks: Task[]): TaskGroups {
@@ -18,6 +20,7 @@ export function groupTasksByHorizon(tasks: Task[]): TaskGroups {
   const in7Str = in7Days.toISOString().split('T')[0]
 
   const open = tasks.filter(t => t.status !== 'done')
+  const done = tasks.filter(t => t.status === 'done')
 
   return {
     overdue: open.filter(t => t.due_date !== null && t.due_date < todayStr),
@@ -25,6 +28,7 @@ export function groupTasksByHorizon(tasks: Task[]): TaskGroups {
     thisWeek: open.filter(t => t.due_date !== null && t.due_date > todayStr && t.due_date <= in7Str),
     later: open.filter(t => t.due_date !== null && t.due_date > in7Str),
     noDueDate: open.filter(t => t.due_date === null),
+    completed: done.sort((a, b) => b.created_at.localeCompare(a.created_at)),
   }
 }
 
@@ -44,13 +48,14 @@ export function useTasks(projectId?: string | null) {
 export function useCreateTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: Pick<Task, 'title' | 'due_date' | 'priority' | 'project_id'>) => {
+    mutationFn: async (input: Pick<Task, 'title' | 'due_date' | 'priority' | 'project_id'> & { due_time?: string | null; duration_minutes?: number | null }) => {
       const { data, error } = await supabase.from('tasks').insert(input).select().single()
       if (error) throw error
       return data as Task
     },
-    onSuccess: () => {
+    onSuccess: (task) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      if (task.due_date) void syncTaskToCalendar(task.id, 'upsert')
     },
   })
 }
@@ -81,6 +86,10 @@ export function useUpdateTask() {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
+    onSuccess: (task) => {
+      // Sync the latest state to Google Calendar (no-op server-side if not connected).
+      void syncTaskToCalendar(task.id, 'upsert')
+    },
   })
 }
 
@@ -88,6 +97,8 @@ export function useDeleteTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      // Remove from Google Calendar BEFORE deleting (so we still have the link).
+      await syncTaskToCalendar(id, 'delete')
       const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw error
     },

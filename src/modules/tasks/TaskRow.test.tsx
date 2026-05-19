@@ -4,7 +4,7 @@ import type { Task, Project } from '../../types'
 
 const task: Task = {
   id: '1', title: 'Write tests', status: 'todo', priority: 'high',
-  due_date: null, project_id: null, description: null, created_at: '',
+  due_date: null, due_time: null, duration_minutes: null, project_id: null, description: null, created_at: '',
 }
 
 describe('TaskRow', () => {
@@ -13,10 +13,10 @@ describe('TaskRow', () => {
     expect(screen.getByText('Write tests')).toBeInTheDocument()
   })
 
-  it('calls onToggle when checkbox is clicked', () => {
+  it('calls onToggle when status button is clicked', () => {
     const onToggle = vi.fn()
     render(<TaskRow task={task} projects={[]} onToggle={onToggle} onSelect={vi.fn()} />)
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: /mark as/i }))
     expect(onToggle).toHaveBeenCalledWith('1')
   })
 

@@ -1,4 +1,5 @@
 import type { CalendarItem } from './useCalendar'
+import { useDeleteCalendarEvent } from './useCalendar'
 import type { Project } from '../../types'
 
 interface DayPanelProps {
@@ -12,9 +13,10 @@ export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
   const label = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   })
+  const deleteEvent = useDeleteCalendarEvent()
 
   return (
-    <div className="border-t border-slate-700 bg-slate-800/50 p-4">
+    <div className="border-t border-slate-700 bg-slate-800/50 p-4 shrink-0">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-slate-300 text-sm font-semibold">{label}</h3>
         <button
@@ -31,13 +33,22 @@ export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
           {items.map(item => {
             const project = projects.find(p => p.id === item.projectId)
             return (
-              <div key={item.id} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+              <div key={item.id} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2 group">
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: project?.color ?? '#6366f1' }}
                 />
                 <span className="text-slate-200 text-sm flex-1">{item.title}</span>
                 <span className="text-slate-500 text-xs">{item.type}</span>
+                {item.type === 'event' && (
+                  <button
+                    onClick={() => deleteEvent.mutate(item.id)}
+                    className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-sm leading-none ml-1"
+                    aria-label="Delete event"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             )
           })}

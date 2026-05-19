@@ -14,7 +14,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false 
 
 const task: Task = {
   id: '1', title: 'Write tests', status: 'todo', priority: 'high',
-  due_date: '2026-05-20', project_id: null, description: 'Some details', created_at: '',
+  due_date: '2026-05-20', due_time: null, duration_minutes: null, project_id: null, description: 'Some details', created_at: '',
 }
 
 function Wrapper({ children }: { children: React.ReactNode }) {

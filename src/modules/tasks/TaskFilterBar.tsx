@@ -6,9 +6,11 @@ interface TaskFilterBarProps {
   filter: TaskFilter
   onFilterChange: (f: TaskFilter) => void
   projects: Project[]
+  showCompleted: boolean
+  onToggleCompleted: (value: boolean) => void
 }
 
-export function TaskFilterBar({ filter, onFilterChange, projects }: TaskFilterBarProps) {
+export function TaskFilterBar({ filter, onFilterChange, projects, showCompleted, onToggleCompleted }: TaskFilterBarProps) {
   return (
     <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-800">
       {(['all', 'today', 'this-week'] as const).map(f => (
@@ -24,10 +26,21 @@ export function TaskFilterBar({ filter, onFilterChange, projects }: TaskFilterBa
           {f === 'all' ? 'All' : f === 'today' ? 'Today' : 'This Week'}
         </button>
       ))}
+      <button
+        onClick={() => onToggleCompleted(!showCompleted)}
+        title={showCompleted ? 'Hide completed tasks' : 'Show completed tasks'}
+        className={`ml-auto px-3 py-1 rounded-lg text-sm transition-colors ${
+          showCompleted
+            ? 'bg-emerald-700/60 text-emerald-100'
+            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+        }`}
+      >
+        {showCompleted ? '✓ Showing completed' : 'Show completed'}
+      </button>
       <select
         value={projects.some(p => p.id === filter) ? filter : ''}
         onChange={e => onFilterChange(e.target.value || 'all')}
-        className="ml-auto bg-slate-800 text-slate-400 text-sm rounded-lg px-3 py-1 outline-none border border-slate-700 hover:border-slate-600"
+        className="bg-slate-800 text-slate-400 text-sm rounded-lg px-3 py-1 outline-none border border-slate-700 hover:border-slate-600"
       >
         <option value="">All Projects</option>
         {projects.map(p => (

@@ -15,10 +15,10 @@ describe('computeProjectsWithTaskCounts', () => {
   ]
 
   const tasks: Task[] = [
-    { id: 't1', title: 'A', status: 'todo', priority: 'high', project_id: 'p1', due_date: null, description: null, created_at: '' },
-    { id: 't2', title: 'B', status: 'done', priority: 'low', project_id: 'p1', due_date: null, description: null, created_at: '' },
-    { id: 't3', title: 'C', status: 'in_progress', priority: 'medium', project_id: 'p1', due_date: null, description: null, created_at: '' },
-    { id: 't4', title: 'D', status: 'todo', priority: 'medium', project_id: 'p2', due_date: null, description: null, created_at: '' },
+    { id: 't1', title: 'A', status: 'todo', priority: 'high', project_id: 'p1', due_date: null, due_time: null, duration_minutes: null, description: null, created_at: '' },
+    { id: 't2', title: 'B', status: 'done', priority: 'low', project_id: 'p1', due_date: null, due_time: null, duration_minutes: null, description: null, created_at: '' },
+    { id: 't3', title: 'C', status: 'in_progress', priority: 'medium', project_id: 'p1', due_date: null, due_time: null, duration_minutes: null, description: null, created_at: '' },
+    { id: 't4', title: 'D', status: 'todo', priority: 'medium', project_id: 'p2', due_date: null, due_time: null, duration_minutes: null, description: null, created_at: '' },
   ]
 
   it('counts open tasks (non-done) per project', () => {

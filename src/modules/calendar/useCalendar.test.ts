@@ -23,7 +23,7 @@ describe('getCalendarDays', () => {
 describe('getItemsForDay', () => {
   const task: Task = {
     id: '1', title: 'Meeting', status: 'todo', priority: 'medium',
-    due_date: '2026-05-15', project_id: null, description: null, created_at: '',
+    due_date: '2026-05-15', due_time: null, duration_minutes: null, project_id: null, description: null, created_at: '',
   }
   const event: CalendarEvent = {
     id: '2', title: 'Lunch', start_time: '2026-05-15T12:00:00Z',

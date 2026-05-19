@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(timeout 10 npm run dev)",
+      "Bash(timeout 30 npm run test -- --run)",
+      "Bash(timeout 30 ./node_modules/.bin/vitest run)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(find /mnt/c/Users/padra/Projetos/personal_organizer -type f -name .env*)",
+      "Bash(/tmp/test_migration.sql:*)",
+      "Bash(pkill:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(/tmp/review_summary.md:*)",
+      "Bash(npx vitest:*)",
+      "Bash(xargs cat:*)",
+      "Bash(/tmp/review.md:*)",
+      "Bash(/tmp/quality_analysis.txt:*)",
+      "Bash(/tmp/project_param_trace.txt:*)",
+      "Bash(/tmp/final_report.md:*)",
+      "Bash(node:*)",
+      "Bash(/tmp/debug_test.tsx:*)",
+      "Bash(/tmp/debug_monthgrid.test.tsx:*)"
+    ]
+  }
+}

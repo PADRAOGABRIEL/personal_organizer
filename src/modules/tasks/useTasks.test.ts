@@ -10,7 +10,7 @@ import { groupTasksByHorizon } from './useTasks'
 
 const makeTask = (overrides: Partial<Task>): Task => ({
   id: '1', title: 'Test', status: 'todo', priority: 'medium',
-  due_date: null, project_id: null, description: null, created_at: '',
+  due_date: null, due_time: null, duration_minutes: null, project_id: null, description: null, created_at: '',
   ...overrides,
 })
 

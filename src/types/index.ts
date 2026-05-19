@@ -18,6 +18,8 @@ export interface Task {
   status: TaskStatus
   priority: Priority
   due_date: string | null   // ISO date string 'YYYY-MM-DD'
+  due_time: string | null   // 'HH:mm:ss' or null for all-day
+  duration_minutes: number | null  // null = default 30 min; only used when due_time is set
   project_id: string | null
   created_at: string
 }

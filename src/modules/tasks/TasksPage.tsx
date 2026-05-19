@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { TopBar } from '../../components/layout/TopBar'
@@ -14,9 +14,14 @@ export function TasksPage() {
   const projectIdParam = searchParams.get('project')
 
   const [filter, setFilter] = useState<TaskFilter>(
-    projectIdParam ? projectIdParam : 'all'
+    projectIdParam ?? 'all'
   )
+
+  useEffect(() => {
+    setFilter(projectIdParam ?? 'all')
+  }, [projectIdParam])
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [showCompleted, setShowCompleted] = useState(false)
 
   const { data: tasks = [] } = useTasks(
     filter === 'all' || filter === 'today' || filter === 'this-week' ? null : filter
@@ -34,7 +39,11 @@ export function TasksPage() {
   const handleToggle = (id: string) => {
     const task = tasks.find(t => t.id === id)
     if (!task) return
-    updateTask.mutate({ id, status: task.status === 'done' ? 'todo' : 'done' })
+    const next =
+      task.status === 'todo' ? 'in_progress'
+      : task.status === 'in_progress' ? 'done'
+      : 'todo'
+    updateTask.mutate({ id, status: next })
   }
 
   const displayedTasks =
@@ -47,13 +56,20 @@ export function TasksPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-slate-900">
       <TopBar />
-      <TaskFilterBar filter={filter} onFilterChange={setFilter} projects={projects} />
+      <TaskFilterBar
+        filter={filter}
+        onFilterChange={setFilter}
+        projects={projects}
+        showCompleted={showCompleted}
+        onToggleCompleted={setShowCompleted}
+      />
       <div className="flex flex-1 min-h-0">
         <TaskList
           groups={groups}
           allTasks={displayedTasks}
           projects={projects}
           filter={filter}
+          showCompleted={showCompleted}
           onToggle={handleToggle}
           onSelect={setSelectedTask}
           projectId={

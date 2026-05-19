@@ -9,18 +9,27 @@ interface TaskListProps {
   allTasks: Task[]
   projects: Project[]
   filter: TaskFilter
+  showCompleted: boolean
   onToggle: (id: string) => void
   onSelect: (task: Task) => void
   projectId?: string | null
 }
 
-export function TaskList({ groups, allTasks: _allTasks, projects, filter, onToggle, onSelect, projectId }: TaskListProps) {
+export function TaskList({ groups, allTasks: _allTasks, projects, filter, showCompleted, onToggle, onSelect, projectId }: TaskListProps) {
   const visibleGroups = getVisibleGroups(groups, filter)
+  const completed = groups.completed
 
-  if (visibleGroups.every(g => g.tasks.length === 0)) {
+  const allEmpty =
+    visibleGroups.every(g => g.tasks.length === 0) &&
+    (!showCompleted || completed.length === 0)
+
+  if (allEmpty) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 text-slate-500 text-sm gap-2">
+      <div className="flex flex-col items-center justify-center flex-1 text-slate-500 text-sm gap-4">
         <p>No tasks here.</p>
+        <div className="w-72">
+          <QuickAddTask projectId={projectId} />
+        </div>
       </div>
     )
   }
@@ -48,6 +57,25 @@ export function TaskList({ groups, allTasks: _allTasks, projects, filter, onTogg
           </section>
         ) : null
       ))}
+
+      {showCompleted && completed.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            Completed · {completed.length}
+          </h2>
+          <div className="flex flex-col gap-1.5 opacity-70">
+            {completed.map(task => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                projects={projects}
+                onToggle={onToggle}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
