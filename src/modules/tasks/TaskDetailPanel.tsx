@@ -21,7 +21,6 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
 
-  // Sync when task changes
   useEffect(() => {
     setTitle(task.title)
     setDescription(task.description ?? '')
@@ -34,16 +33,17 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
   }, [task.id])
 
   const save = useCallback((overrides?: Partial<Task>) => {
+    const o = overrides ?? {}
     updateTask.mutate({
       id: task.id,
-      title: overrides?.title ?? (title.trim() || task.title),
-      description: overrides?.description ?? (description || null),
-      due_date: overrides?.due_date ?? (dueDate || null),
-      due_time: overrides?.due_time ?? (dueTime ? `${dueTime}:00` : null),
-      duration_minutes: overrides?.duration_minutes ?? (duration ? Number(duration) : null),
-      priority: overrides?.priority ?? priority,
-      project_id: overrides?.project_id ?? (projectId || null),
-      status: overrides?.status ?? status,
+      title: 'title' in o ? o.title! : (title.trim() || task.title),
+      description: 'description' in o ? o.description : (description || null),
+      due_date: 'due_date' in o ? o.due_date : (dueDate || null),
+      due_time: 'due_time' in o ? o.due_time : (dueTime ? `${dueTime}:00` : null),
+      duration_minutes: 'duration_minutes' in o ? o.duration_minutes : (duration ? Number(duration) : null),
+      priority: 'priority' in o ? o.priority! : priority,
+      project_id: 'project_id' in o ? o.project_id : (projectId || null),
+      status: 'status' in o ? o.status! : status,
     })
   }, [task, updateTask, title, description, dueDate, dueTime, duration, priority, projectId, status])
 
@@ -118,7 +118,6 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
               onChange={e => {
                 const newDate = e.target.value
                 setDueDate(newDate)
-                // Clearing date also clears time
                 if (!newDate) {
                   setDueTime('')
                   save({ due_date: null, due_time: null })

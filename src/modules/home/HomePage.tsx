@@ -4,12 +4,17 @@ import { BubbleChart } from './BubbleChart'
 import { StatsStrip } from './StatsStrip'
 import { NewProjectModal } from './NewProjectModal'
 import { ProjectsModal } from './ProjectsModal'
+import { EditProjectModal } from './EditProjectModal'
 import { useHomeData } from './useHomeData'
+import { SkeletonBlock } from '../../components/SkeletonBlock'
 
 export function HomePage() {
   const [showNewModal, setShowNewModal] = useState(false)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const { projectsWithCounts, openTaskCount, dueTodayCount, isLoading } = useHomeData()
+
+  const editingProject = projectsWithCounts.find(p => p.id === editingProjectId) ?? null
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-slate-900">
@@ -41,8 +46,11 @@ export function HomePage() {
         </div>
 
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
-            Loading...
+          <div className="absolute inset-0 flex items-center justify-center gap-6 pointer-events-none">
+            <SkeletonBlock className="w-32 h-32 rounded-full" />
+            <SkeletonBlock className="w-20 h-20 rounded-full" />
+            <SkeletonBlock className="w-28 h-28 rounded-full" />
+            <SkeletonBlock className="w-16 h-16 rounded-full" />
           </div>
         ) : projectsWithCounts.length === 0 ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
@@ -55,12 +63,32 @@ export function HomePage() {
             </button>
           </div>
         ) : (
-          <BubbleChart projects={projectsWithCounts} />
+          <BubbleChart
+            projects={projectsWithCounts}
+            onEdit={setEditingProjectId}
+          />
+        )}
+
+        {projectsWithCounts.length > 0 && (
+          <p className="absolute bottom-3 left-0 right-0 text-center text-slate-600 text-xs pointer-events-none">
+            Right-click a bubble to edit
+          </p>
         )}
       </div>
 
       {showNewModal && <NewProjectModal onClose={() => setShowNewModal(false)} />}
-      {showManageModal && <ProjectsModal onClose={() => setShowManageModal(false)} />}
+      {showManageModal && (
+        <ProjectsModal
+          onClose={() => setShowManageModal(false)}
+          onEdit={id => { setShowManageModal(false); setEditingProjectId(id) }}
+        />
+      )}
+      {editingProject && (
+        <EditProjectModal
+          project={editingProject}
+          onClose={() => setEditingProjectId(null)}
+        />
+      )}
     </div>
   )
 }

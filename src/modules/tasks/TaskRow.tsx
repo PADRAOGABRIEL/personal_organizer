@@ -56,6 +56,7 @@ export function TaskRow({ task, projects, onToggle, onSelect }: TaskRowProps) {
   )
 }
 
+
 interface StatusToggleProps {
   status: Task['status']
   onClick: () => void

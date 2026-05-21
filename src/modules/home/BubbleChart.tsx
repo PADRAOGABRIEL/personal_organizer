@@ -23,9 +23,10 @@ interface BubbleNode extends d3.SimulationNodeDatum {
 
 interface BubbleChartProps {
   projects: ProjectWithTaskCount[]
+  onEdit?: (id: string) => void
 }
 
-export function BubbleChart({ projects }: BubbleChartProps) {
+export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const simulationRef = useRef<d3.Simulation<BubbleNode, undefined> | null>(null)
   const navigate = useNavigate()
@@ -73,6 +74,10 @@ export function BubbleChart({ projects }: BubbleChartProps) {
       .attr('class', 'bubble')
       .style('cursor', 'pointer')
       .on('click', (_, d) => navigate(`/tasks?project=${d.id}`))
+      .on('contextmenu', (event: MouseEvent, d) => {
+        event.preventDefault()
+        if (onEdit) onEdit(d.id)
+      })
 
     // Glow filter per node
     nodes.forEach(node => {
@@ -154,7 +159,7 @@ export function BubbleChart({ projects }: BubbleChartProps) {
           return `translate(${d.x},${d.y})`
         })
       })
-  }, [projects, navigate])
+  }, [projects, navigate, onEdit])
 
   useEffect(() => {
     draw()

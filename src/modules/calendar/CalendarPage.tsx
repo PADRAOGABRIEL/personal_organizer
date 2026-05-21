@@ -5,6 +5,7 @@ import { MonthGrid } from './MonthGrid'
 import { DayPanel } from './DayPanel'
 import { AddEventModal } from './AddEventModal'
 import { useCalendarData, getItemsForDay, type CalendarItem } from './useCalendar'
+import { SkeletonBlock } from '../../components/SkeletonBlock'
 import { supabase } from '../../lib/supabase'
 import type { Project } from '../../types'
 
@@ -17,7 +18,7 @@ export function CalendarPage() {
   )
   const [showAddEvent, setShowAddEvent] = useState(false)
 
-  const { tasks, events } = useCalendarData(year, month)
+  const { tasks, events, isLoading: isCalendarLoading } = useCalendarData(year, month)
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -65,21 +66,31 @@ export function CalendarPage() {
     <div className="flex flex-col flex-1 min-h-0 bg-slate-900">
       <TopBar action={action} />
       <div className="flex flex-col flex-1 min-h-0">
-        <MonthGrid
-          year={year}
-          month={month}
-          items={itemsMap}
-          selectedDay={selectedDay}
-          onSelectDay={setSelectedDay}
-          projects={projects}
-        />
-        {selectedDay && (
-          <DayPanel
-            date={selectedDay}
-            items={itemsMap[selectedDay] ?? []}
-            projects={projects}
-            onAddEvent={() => setShowAddEvent(true)}
-          />
+        {isCalendarLoading ? (
+          <div className="grid grid-cols-7 gap-1 p-4 flex-1 content-start">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <SkeletonBlock key={i} className="h-16" />
+            ))}
+          </div>
+        ) : (
+          <>
+            <MonthGrid
+              year={year}
+              month={month}
+              items={itemsMap}
+              selectedDay={selectedDay}
+              onSelectDay={setSelectedDay}
+              projects={projects}
+            />
+            {selectedDay && (
+              <DayPanel
+                date={selectedDay}
+                items={itemsMap[selectedDay] ?? []}
+                projects={projects}
+                onAddEvent={() => setShowAddEvent(true)}
+              />
+            )}
+          </>
         )}
       </div>
       {showAddEvent && selectedDay && (

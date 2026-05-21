@@ -1,12 +1,12 @@
-import { useProjects, useDeleteProject } from '../../hooks/useProjects'
+import { useProjects } from '../../hooks/useProjects'
 
 interface ProjectsModalProps {
   onClose: () => void
+  onEdit: (id: string) => void
 }
 
-export function ProjectsModal({ onClose }: ProjectsModalProps) {
+export function ProjectsModal({ onClose, onEdit }: ProjectsModalProps) {
   const { data: projects = [] } = useProjects()
-  const deleteProject = useDeleteProject()
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
@@ -35,11 +35,10 @@ export function ProjectsModal({ onClose }: ProjectsModalProps) {
                   )}
                 </div>
                 <button
-                  onClick={() => deleteProject.mutate(project.id)}
-                  disabled={deleteProject.isPending}
-                  className="text-red-500 hover:text-red-400 text-xs disabled:opacity-40 shrink-0"
+                  onClick={() => onEdit(project.id)}
+                  className="text-slate-400 hover:text-slate-200 text-xs shrink-0 px-2 py-1 rounded hover:bg-slate-700 transition-colors"
                 >
-                  Delete
+                  Edit
                 </button>
               </div>
             ))}

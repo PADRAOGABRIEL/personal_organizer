@@ -14,7 +14,7 @@ export interface TaskGroups {
 
 export function groupTasksByHorizon(tasks: Task[]): TaskGroups {
   const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
+  const today = now.toISOString().split('T')[0]
   const in7Days = new Date(now)
   in7Days.setDate(now.getDate() + 7)
   const in7Str = in7Days.toISOString().split('T')[0]
@@ -23,9 +23,9 @@ export function groupTasksByHorizon(tasks: Task[]): TaskGroups {
   const done = tasks.filter(t => t.status === 'done')
 
   return {
-    overdue: open.filter(t => t.due_date !== null && t.due_date < todayStr),
-    today: open.filter(t => t.due_date === todayStr),
-    thisWeek: open.filter(t => t.due_date !== null && t.due_date > todayStr && t.due_date <= in7Str),
+    overdue: open.filter(t => t.due_date !== null && t.due_date < today),
+    today: open.filter(t => t.due_date === today),
+    thisWeek: open.filter(t => t.due_date !== null && t.due_date > today && t.due_date <= in7Str),
     later: open.filter(t => t.due_date !== null && t.due_date > in7Str),
     noDueDate: open.filter(t => t.due_date === null),
     completed: done.sort((a, b) => b.created_at.localeCompare(a.created_at)),
@@ -36,7 +36,7 @@ export function useTasks(projectId?: string | null) {
   return useQuery({
     queryKey: ['tasks', projectId ?? 'all'],
     queryFn: async () => {
-      let query = supabase.from('tasks').select('*').order('created_at', { ascending: true })
+      let query = supabase.from('tasks').select('*').order('due_date', { ascending: true, nullsFirst: false })
       if (projectId) query = query.eq('project_id', projectId)
       const { data, error } = await query
       if (error) throw error
@@ -78,16 +78,13 @@ export function useUpdateTask() {
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        context.previous.forEach(([key, data]) =>
-          queryClient.setQueryData(key, data)
-        )
+        context.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
     onSuccess: (task) => {
-      // Sync the latest state to Google Calendar (no-op server-side if not connected).
       void syncTaskToCalendar(task.id, 'upsert')
     },
   })
@@ -97,7 +94,6 @@ export function useDeleteTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      // Remove from Google Calendar BEFORE deleting (so we still have the link).
       await syncTaskToCalendar(id, 'delete')
       const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw error

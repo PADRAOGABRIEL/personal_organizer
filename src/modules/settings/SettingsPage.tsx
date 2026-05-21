@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { TopBar } from '../../components/layout/TopBar'
 import { getOAuthStartUrl } from '../../lib/googleCalendar'
 import { useGoogleConnection, useDisconnectGoogle } from './useGoogleConnection'
+import { SkeletonBlock } from '../../components/SkeletonBlock'
+import { TelegramSection } from './TelegramSection'
 
 export function SettingsPage() {
   const { data, isLoading } = useGoogleConnection()
@@ -57,7 +59,10 @@ export function SettingsPage() {
                 Updates flow one-way: app → calendar.
               </p>
               {isLoading ? (
-                <p className="text-slate-500 text-xs mt-3">Checking connection…</p>
+                <div className="mt-3 flex flex-col gap-2">
+                  <SkeletonBlock className="h-3 w-40" />
+                  <SkeletonBlock className="h-3 w-56" />
+                </div>
               ) : data?.connected ? (
                 <div className="mt-3 flex flex-col gap-1 text-xs text-slate-400">
                   <span>
@@ -97,6 +102,8 @@ export function SettingsPage() {
         <p className="text-slate-600 text-xs">
           Tasks without a due date are not synced. Done tasks are kept as events with a ✓ prefix.
         </p>
+
+        <TelegramSection />
       </div>
     </div>
   )
