@@ -45,7 +45,7 @@ export function EditProjectModal({ project, onClose }: EditProjectModalProps) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-slate-100 font-semibold text-lg">Edit Project</h2>
+          <h2 className="text-slate-100 font-semibold text-lg">Editar Área</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-200 text-xl leading-none">×</button>
         </div>
 
@@ -95,7 +95,7 @@ export function EditProjectModal({ project, onClose }: EditProjectModalProps) {
                 onClick={() => setConfirmDelete(true)}
                 className="px-3 py-2 text-sm text-red-500 hover:text-red-400 transition-colors"
               >
-                Delete project
+                Excluir área
               </button>
             ) : (
               <div className="flex items-center gap-2">

@@ -66,7 +66,7 @@ export function AddEventModal({ date, projects, onClose }: AddEventModalProps) {
             </div>
           )}
           <div>
-            <label className="text-slate-400 text-xs mb-1 block">Project (optional)</label>
+            <label className="text-slate-400 text-xs mb-1 block">Área (opcional)</label>
             <select
               value={projectId}
               onChange={e => setProjectId(e.target.value)}

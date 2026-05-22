@@ -35,16 +35,16 @@ export function TaskRow({ task, projects, onToggle, onSelect }: TaskRowProps) {
         status={task.status}
         onClick={() => onToggle(task.id)}
       />
-      <span className={`flex-1 text-sm ${titleClass}`}>
+      <span className={`flex-1 min-w-0 truncate text-sm ${titleClass}`}>
         {task.title}
       </span>
       {project && (
         <span className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: project.color }} />
-          {project.name}
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+          <span className="hidden sm:inline">{project.name}</span>
         </span>
       )}
-      <span className={`text-xs px-1.5 py-0.5 rounded ${PRIORITY_STYLES[task.priority]} shrink-0`}>
+      <span className={`hidden sm:inline text-xs px-1.5 py-0.5 rounded ${PRIORITY_STYLES[task.priority]} shrink-0`}>
         {PRIORITY_LABEL[task.priority]}
       </span>
       {task.due_date && (
@@ -74,7 +74,7 @@ function StatusToggle({ status, onClick }: StatusToggleProps) {
       aria-label={label}
       title={label}
       onClick={e => { e.stopPropagation(); onClick() }}
-      className="w-4 h-4 shrink-0 flex items-center justify-center"
+      className="w-9 h-9 shrink-0 flex items-center justify-center -ml-2 -my-1"
     >
       {status === 'todo' && (
         <svg viewBox="0 0 16 16" className="w-4 h-4">

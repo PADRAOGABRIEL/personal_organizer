@@ -7,9 +7,10 @@ interface DayPanelProps {
   items: CalendarItem[]
   projects: Project[]
   onAddEvent: () => void
+  onItemClick?: (item: CalendarItem) => void
 }
 
-export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
+export function DayPanel({ date, items, projects, onAddEvent, onItemClick }: DayPanelProps) {
   const label = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   })
@@ -23,7 +24,7 @@ export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
           onClick={onAddEvent}
           className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 px-2.5 py-1 rounded-lg transition-colors"
         >
-          + Add event
+          + Adicionar
         </button>
       </div>
       {items.length === 0 ? (
@@ -33,7 +34,11 @@ export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
           {items.map(item => {
             const project = projects.find(p => p.id === item.projectId)
             return (
-              <div key={item.id} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2 group">
+              <div
+                key={item.id}
+                onClick={() => onItemClick?.(item)}
+                className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2 group cursor-pointer hover:bg-slate-750"
+              >
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{ backgroundColor: project?.color ?? '#6366f1' }}

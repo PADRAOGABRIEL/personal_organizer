@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 type SyncAction = 'upsert' | 'delete'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
@@ -31,4 +33,19 @@ export async function syncTaskToCalendar(taskId: string, action: SyncAction): Pr
 
 export function getOAuthStartUrl(redirectBack: string): string {
   return `${supabaseUrl}/functions/v1/google-oauth-start?redirect=${encodeURIComponent(redirectBack)}`
+}
+
+export async function importFromGoogleCalendar(): Promise<{ imported: number; skipped: number }> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Not authenticated')
+
+  const now = new Date()
+  const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
+  const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, 0).toISOString()
+
+  const { data, error } = await supabase.functions.invoke('import-from-google-calendar', {
+    body: { userId: session.user.id, timeMin, timeMax },
+  })
+  if (error) throw error
+  return data as { imported: number; skipped: number }
 }

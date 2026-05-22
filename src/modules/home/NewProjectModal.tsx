@@ -29,15 +29,15 @@ export function NewProjectModal({ onClose }: NewProjectModalProps) {
         className="bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-slate-100 font-semibold text-lg mb-5">New Project</h2>
+        <h2 className="text-slate-100 font-semibold text-lg mb-5">Nova Área</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="text-slate-400 text-xs mb-1 block">Name</label>
+            <label className="text-slate-400 text-xs mb-1 block">Nome da área</label>
             <input
               autoFocus
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Project name"
+              placeholder="Nome da área"
               className="w-full bg-slate-900 text-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-600"
             />
           </div>

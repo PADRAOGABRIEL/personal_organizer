@@ -7,7 +7,7 @@ interface StatsStripProps {
 export function StatsStrip({ activeProjects, openTasks, dueToday }: StatsStripProps) {
   return (
     <div className="flex gap-2 p-4 md:absolute md:top-0 md:left-0 md:z-10 flex-wrap">
-      <Stat value={activeProjects} label="Active Projects" color="text-indigo-400" />
+      <Stat value={activeProjects} label="Áreas Ativas" color="text-indigo-400" />
       <Stat value={openTasks} label="Open Tasks" color="text-amber-400" />
       <Stat value={dueToday} label="Due Today" color="text-pink-400" />
     </div>

@@ -15,11 +15,11 @@ export function ProjectsModal({ onClose, onEdit }: ProjectsModalProps) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-slate-100 font-semibold text-lg">Manage Projects</h2>
+          <h2 className="text-slate-100 font-semibold text-lg">Gerenciar Áreas</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-200 text-xl leading-none">×</button>
         </div>
         {projects.length === 0 ? (
-          <p className="text-slate-500 text-sm text-center py-4">No projects yet.</p>
+          <p className="text-slate-500 text-sm text-center py-4">Nenhuma área ainda.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {projects.map(project => (

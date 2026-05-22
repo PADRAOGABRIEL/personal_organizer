@@ -50,7 +50,6 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
       y: height / 2 + (Math.random() - 0.5) * 10,
     }))
 
-    // Clear previous
     d3.select(svg).selectAll('*').remove()
 
     const svgSel = d3.select(svg)
@@ -63,6 +62,15 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
         .attr('cx', '35%').attr('cy', '35%')
       grad.append('stop').attr('offset', '0%').attr('stop-color', lighten(node.color, 0.3))
       grad.append('stop').attr('offset', '100%').attr('stop-color', node.color)
+    })
+
+    // Glow filters
+    nodes.forEach(node => {
+      const filter = defs.append('filter').attr('id', `glow-${node.id}`)
+      filter.append('feGaussianBlur').attr('stdDeviation', '8').attr('result', 'coloredBlur')
+      const feMerge = filter.append('feMerge')
+      feMerge.append('feMergeNode').attr('in', 'coloredBlur')
+      feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
     })
 
     const g = svgSel.append('g')
@@ -79,15 +87,6 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
         if (onEdit) onEdit(d.id)
       })
 
-    // Glow filter per node
-    nodes.forEach(node => {
-      const filter = defs.append('filter').attr('id', `glow-${node.id}`)
-      filter.append('feGaussianBlur').attr('stdDeviation', '8').attr('result', 'coloredBlur')
-      const feMerge = filter.append('feMerge')
-      feMerge.append('feMergeNode').attr('in', 'coloredBlur')
-      feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
-    })
-
     // Glow circle (behind)
     bubble.append('circle')
       .attr('r', d => d.radius + 8)
@@ -99,15 +98,9 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
       .attr('r', d => d.radius)
       .attr('fill', d => `url(#grad-${d.id})`)
       .on('mouseover', function(_, d) {
-        d3.select(this.parentNode as Element)
-          .select('.bubble-tooltip')
-          .style('display', 'block')
         d3.select(this).transition().duration(150).attr('r', d.radius * 1.05)
       })
       .on('mouseout', function(_, d) {
-        d3.select(this.parentNode as Element)
-          .select('.bubble-tooltip')
-          .style('display', 'none')
         d3.select(this).transition().duration(150).attr('r', d.radius)
       })
 
@@ -144,7 +137,6 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
       .attr('font-size', d => Math.min(11, d.radius / 4.5))
       .style('pointer-events', 'none')
 
-    // Force simulation
     if (simulationRef.current) simulationRef.current.stop()
 
     simulationRef.current = d3.forceSimulation(nodes)
@@ -152,12 +144,30 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
       .force('charge', d3.forceManyBody().strength(30))
       .force('collide', d3.forceCollide<BubbleNode>().radius(d => d.radius + 6).strength(0.9))
       .on('tick', () => {
-        bubble.attr('transform', d => {
-          // Clamp to SVG bounds
-          d.x = Math.max(d.radius, Math.min(width - d.radius, d.x ?? width / 2))
-          d.y = Math.max(d.radius, Math.min(height - d.radius, d.y ?? height / 2))
-          return `translate(${d.x},${d.y})`
-        })
+        bubble.attr('transform', d => `translate(${d.x ?? width / 2},${d.y ?? height / 2})`)
+      })
+      .on('end', () => {
+        // Compute bounding box including glow halo (radius + 8)
+        const pad = 28
+        const xs = nodes.flatMap(d => [(d.x ?? 0) - d.radius - 8, (d.x ?? 0) + d.radius + 8])
+        const ys = nodes.flatMap(d => [(d.y ?? 0) - d.radius - 8, (d.y ?? 0) + d.radius + 8])
+        const bx0 = Math.min(...xs), bx1 = Math.max(...xs)
+        const by0 = Math.min(...ys), by1 = Math.max(...ys)
+        const bw = bx1 - bx0
+        const bh = by1 - by0
+        if (bw <= 0 || bh <= 0) return
+
+        // Scale to fill the viewport; allow modest upscale for few small bubbles
+        const scale = Math.min(
+          (width  - pad * 2) / bw,
+          (height - pad * 2) / bh,
+          1.6
+        )
+        const tx = (width  - bw * scale) / 2 - bx0 * scale
+        const ty = (height - bh * scale) / 2 - by0 * scale
+
+        g.transition().duration(450).ease(d3.easeCubicOut)
+          .attr('transform', `translate(${tx},${ty}) scale(${scale})`)
       })
   }, [projects, navigate, onEdit])
 
@@ -172,11 +182,13 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
   }, [draw])
 
   return (
-    <svg
-      ref={svgRef}
-      className="absolute inset-0 w-full h-full"
-      aria-label="Project bubble chart"
-    />
+    <div className="absolute inset-0">
+      <svg
+        ref={svgRef}
+        className="w-full h-full"
+        aria-label="Project bubble chart"
+      />
+    </div>
   )
 }
 

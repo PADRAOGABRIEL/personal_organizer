@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Task, Project, Priority, TaskStatus } from '../../types'
 import { useUpdateTask, useDeleteTask } from './useTasks'
+import { recurrenceLabel } from '../../lib/recurrence'
 
 interface TaskDetailPanelProps {
   task: Task
@@ -17,6 +18,7 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
   const [priority, setPriority] = useState<Priority>(task.priority)
   const [projectId, setProjectId] = useState(task.project_id ?? '')
   const [status, setStatus] = useState<TaskStatus>(task.status)
+  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(task.recurrence_rule ?? null)
 
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
@@ -30,6 +32,7 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
     setPriority(task.priority)
     setProjectId(task.project_id ?? '')
     setStatus(task.status)
+    setRecurrenceRule(task.recurrence_rule ?? null)
   }, [task.id])
 
   const save = useCallback((overrides?: Partial<Task>) => {
@@ -44,8 +47,9 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
       priority: 'priority' in o ? o.priority! : priority,
       project_id: 'project_id' in o ? o.project_id : (projectId || null),
       status: 'status' in o ? o.status! : status,
+      recurrence_rule: 'recurrence_rule' in o ? o.recurrence_rule : recurrenceRule,
     })
-  }, [task, updateTask, title, description, dueDate, dueTime, duration, priority, projectId, status])
+  }, [task, updateTask, title, description, dueDate, dueTime, duration, priority, projectId, status, recurrenceRule])
 
   return (
     <aside className="
@@ -207,19 +211,51 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
           </div>
         </div>
 
-        {/* Project */}
+        {/* Área */}
         <div>
-          <label className="text-slate-500 text-xs mb-1 block">Project</label>
+          <label className="text-slate-500 text-xs mb-1 block">Área</label>
           <select
             value={projectId}
             onChange={e => { setProjectId(e.target.value); save({ project_id: e.target.value || null }) }}
             className="w-full bg-slate-900 text-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 border border-slate-700"
           >
-            <option value="">No project</option>
+            <option value="">Sem área</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
+        </div>
+
+        {/* Recurrence */}
+        <div>
+          <label className="text-slate-500 text-xs mb-2 block">Repetição</label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { label: 'Não repete', rule: null },
+              { label: 'Todo dia', rule: 'DAILY:1' },
+              { label: 'Toda semana', rule: 'WEEKLY:1' },
+              { label: 'Todo mês', rule: 'MONTHLY:1' },
+            ].map(opt => (
+              <button
+                key={opt.rule ?? 'none'}
+                type="button"
+                onClick={() => {
+                  setRecurrenceRule(opt.rule)
+                  save({ recurrence_rule: opt.rule })
+                }}
+                className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                  recurrenceRule === opt.rule
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {recurrenceRule && (
+            <p className="text-indigo-400 text-xs mt-1">{recurrenceLabel(recurrenceRule)}</p>
+          )}
         </div>
 
         {/* Delete */}
@@ -227,7 +263,7 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
           onClick={() => { deleteTask.mutate(task.id); onClose() }}
           className="mt-2 w-full py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-lg transition-colors"
         >
-          Delete task
+          Excluir tarefa
         </button>
       </div>
     </aside>

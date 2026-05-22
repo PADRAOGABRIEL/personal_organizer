@@ -1,6 +1,7 @@
 export type ProjectStatus = 'active' | 'archived'
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
 export type Priority = 'low' | 'medium' | 'high'
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 
 export interface Project {
   id: string
@@ -21,6 +22,8 @@ export interface Task {
   due_time: string | null
   duration_minutes: number | null
   project_id: string | null
+  recurrence_rule: string | null
+  google_event_id: string | null
   created_at: string
 }
 
@@ -31,8 +34,18 @@ export interface CalendarEvent {
   start_time: string        // ISO timestamptz
   end_time: string | null
   all_day: boolean
+  location: string | null
+  recurrence_rule: string | null
+  recurrence_parent_id: string | null
+  google_event_id: string | null
   project_id: string | null
   created_at: string
+}
+
+export interface ParsedRecurrence {
+  frequency: RecurrenceFrequency
+  interval: number
+  weekdays?: string[]  // e.g. ['MO', 'WE', 'FR']
 }
 
 // Derived type used on the home page bubble chart

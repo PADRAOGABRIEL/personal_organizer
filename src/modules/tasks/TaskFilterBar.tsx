@@ -42,7 +42,7 @@ export function TaskFilterBar({ filter, onFilterChange, projects, showCompleted,
         onChange={e => onFilterChange(e.target.value || 'all')}
         className="shrink-0 bg-slate-800 text-slate-400 text-sm rounded-lg px-3 py-1.5 outline-none border border-slate-700 hover:border-slate-600"
       >
-        <option value="">All Projects</option>
+        <option value="">Todas as Áreas</option>
         {projects.map(p => (
           <option key={p.id} value={p.id}>{p.name}</option>
         ))}

@@ -42,7 +42,7 @@ export function HomePage() {
             onClick={() => setShowNewModal(true)}
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
-            + New Project
+            + Nova Área
           </button>
         </div>
 
@@ -56,13 +56,19 @@ export function HomePage() {
               <SkeletonBlock className="w-16 h-16 rounded-full" />
             </div>
           ) : projectsWithCounts.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
-              <p className="text-sm">No projects yet.</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-8">
+              <div className="text-4xl mb-1 text-slate-600">◎</div>
+              <p className="text-slate-300 text-lg font-medium">Organize sua vida por áreas</p>
+              <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
+                Áreas são grandes campos da sua vida — como <em>Trabalho</em>, <em>Estudos</em>,{' '}
+                <em>Saúde</em> ou <em>Pessoal</em>. Agrupe suas tarefas e eventos dentro de cada
+                área para ter uma visão clara das suas prioridades.
+              </p>
               <button
                 onClick={() => setShowNewModal(true)}
-                className="text-indigo-400 hover:text-indigo-300 text-sm"
+                className="mt-2 text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
               >
-                Create your first project →
+                Criar minha primeira área →
               </button>
             </div>
           ) : (
@@ -73,7 +79,7 @@ export function HomePage() {
           )}
 
           {projectsWithCounts.length > 0 && (
-            <p className="absolute bottom-3 left-0 right-0 text-center text-slate-600 text-xs pointer-events-none">
+            <p className="hidden md:block absolute bottom-3 left-0 right-0 text-center text-slate-600 text-xs pointer-events-none">
               Right-click a bubble to edit
             </p>
           )}
