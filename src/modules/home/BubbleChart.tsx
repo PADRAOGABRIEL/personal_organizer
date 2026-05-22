@@ -139,36 +139,37 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
 
     if (simulationRef.current) simulationRef.current.stop()
 
-    simulationRef.current = d3.forceSimulation(nodes)
+    const sim = d3.forceSimulation(nodes)
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
       .force('charge', d3.forceManyBody().strength(30))
       .force('collide', d3.forceCollide<BubbleNode>().radius(d => d.radius + 6).strength(0.9))
-      .on('tick', () => {
-        bubble.attr('transform', d => `translate(${d.x ?? width / 2},${d.y ?? height / 2})`)
-      })
-      .on('end', () => {
-        // Compute bounding box including glow halo (radius + 8)
-        const pad = 28
-        const xs = nodes.flatMap(d => [(d.x ?? 0) - d.radius - 8, (d.x ?? 0) + d.radius + 8])
-        const ys = nodes.flatMap(d => [(d.y ?? 0) - d.radius - 8, (d.y ?? 0) + d.radius + 8])
-        const bx0 = Math.min(...xs), bx1 = Math.max(...xs)
-        const by0 = Math.min(...ys), by1 = Math.max(...ys)
-        const bw = bx1 - bx0
-        const bh = by1 - by0
-        if (bw <= 0 || bh <= 0) return
+      .stop()
 
-        // Scale to fill the viewport; allow modest upscale for few small bubbles
-        const scale = Math.min(
-          (width  - pad * 2) / bw,
-          (height - pad * 2) / bh,
-          1.6
-        )
-        const tx = (width  - bw * scale) / 2 - bx0 * scale
-        const ty = (height - bh * scale) / 2 - by0 * scale
+    // Pre-run all ticks synchronously so bubbles are at stable positions on first paint
+    sim.tick(Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())))
 
-        g.transition().duration(450).ease(d3.easeCubicOut)
-          .attr('transform', `translate(${tx},${ty}) scale(${scale})`)
-      })
+    bubble.attr('transform', d => `translate(${d.x ?? width / 2},${d.y ?? height / 2})`)
+
+    // Fit all bubbles in viewport immediately
+    const pad = 28
+    const xs = nodes.flatMap(d => [(d.x ?? 0) - d.radius - 8, (d.x ?? 0) + d.radius + 8])
+    const ys = nodes.flatMap(d => [(d.y ?? 0) - d.radius - 8, (d.y ?? 0) + d.radius + 8])
+    const bx0 = Math.min(...xs), bx1 = Math.max(...xs)
+    const by0 = Math.min(...ys), by1 = Math.max(...ys)
+    const bw = bx1 - bx0
+    const bh = by1 - by0
+    if (bw > 0 && bh > 0) {
+      const scale = Math.min(
+        (width  - pad * 2) / bw,
+        (height - pad * 2) / bh,
+        1.6
+      )
+      const tx = (width  - bw * scale) / 2 - bx0 * scale
+      const ty = (height - bh * scale) / 2 - by0 * scale
+      g.attr('transform', `translate(${tx},${ty}) scale(${scale})`)
+    }
+
+    simulationRef.current = sim
   }, [projects, navigate, onEdit])
 
   useEffect(() => {
