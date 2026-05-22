@@ -35,7 +35,7 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-slate-900 overflow-y-auto">
       <TopBar />
-      <div className="max-w-2xl w-full mx-auto p-6 flex flex-col gap-6">
+      <div className="max-w-2xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
         <h1 className="text-slate-100 text-xl font-semibold">Settings</h1>
 
         {banner && (
@@ -51,7 +51,7 @@ export function SettingsPage() {
         )}
 
         <section className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
               <h2 className="text-slate-100 font-medium">Google Calendar</h2>
               <p className="text-slate-400 text-sm mt-1">

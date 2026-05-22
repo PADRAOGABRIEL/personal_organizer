@@ -9,12 +9,12 @@ export function TopBar({ action }: TopBarProps) {
   })
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-end px-5 pb-3 gap-3 shrink-0">
+    <header className="h-12 md:h-16 bg-slate-900 border-b border-slate-800 flex items-center md:items-end px-4 md:px-5 pb-0 md:pb-3 gap-3 shrink-0">
       <div>
         <span className="text-slate-100 font-semibold">{greeting}, Padrao</span>
       </div>
-      <span className="ml-auto text-slate-500 text-sm">{dateStr}</span>
-      {action && <div className="ml-3">{action}</div>}
+      <span className="hidden sm:block ml-auto text-slate-500 text-sm">{dateStr}</span>
+      {action && <div className="ml-auto sm:ml-3">{action}</div>}
     </header>
   )
 }

@@ -48,14 +48,24 @@ export function TaskDetailPanel({ task, projects, onClose }: TaskDetailPanelProp
   }, [task, updateTask, title, description, dueDate, dueTime, duration, priority, projectId, status])
 
   return (
-    <aside className="w-80 bg-slate-800 border-l border-slate-700 flex flex-col overflow-y-auto shrink-0">
+    <aside className="
+      fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl
+      bg-slate-800 border-t border-slate-700 flex flex-col
+      md:relative md:inset-auto md:bottom-auto md:z-auto md:max-h-none md:rounded-none
+      md:w-80 md:border-l md:border-t-0 md:shrink-0
+    ">
+      {/* Mobile drag handle */}
+      <div className="md:hidden flex justify-center pt-2 pb-1 shrink-0">
+        <div className="w-10 h-1 rounded-full bg-slate-600" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
         <span className="text-slate-400 text-xs uppercase tracking-wider">Task Detail</span>
         <button
           aria-label="Close panel"
           onClick={onClose}
-          className="text-slate-500 hover:text-slate-200 text-xl leading-none"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-700 text-xl leading-none transition-colors"
         >
           ×
         </button>

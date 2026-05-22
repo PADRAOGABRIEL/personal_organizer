@@ -16,7 +16,7 @@ export function DayPanel({ date, items, projects, onAddEvent }: DayPanelProps) {
   const deleteEvent = useDeleteCalendarEvent()
 
   return (
-    <div className="border-t border-slate-700 bg-slate-800/50 p-4 shrink-0">
+    <div className="border-t border-slate-700 bg-slate-800/50 p-4 shrink-0 max-h-[40vh] md:max-h-none overflow-y-auto">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-slate-300 text-sm font-semibold">{label}</h3>
         <button

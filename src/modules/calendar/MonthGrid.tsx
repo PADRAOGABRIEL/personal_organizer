@@ -34,7 +34,7 @@ export function MonthGrid({ year, month, items, selectedDay, onSelectDay, projec
               key={day.date}
               onClick={() => onSelectDay(day.date)}
               className={`
-                flex flex-col rounded-lg p-1 text-left transition-colors min-h-[56px]
+                flex flex-col rounded-lg p-1 text-left transition-colors min-h-[44px] md:min-h-[56px]
                 ${day.isCurrentMonth ? 'hover:bg-slate-800' : 'opacity-30'}
                 ${isSelected ? 'bg-slate-700 ring-1 ring-indigo-500' : ''}
               `}
@@ -45,8 +45,23 @@ export function MonthGrid({ year, month, items, selectedDay, onSelectDay, projec
               `}>
                 {new Date(day.date + 'T00:00:00').getDate()}
               </span>
-              {/* Task/event labels */}
-              <div className="flex flex-col gap-0.5 mt-0.5 w-full">
+              {/* Mobile: colored dots only */}
+              {dayItems.length > 0 && (
+                <div className="flex md:hidden gap-0.5 flex-wrap mt-0.5">
+                  {dayItems.slice(0, 4).map(item => {
+                    const color = projects.find(p => p.id === item.projectId)?.color ?? '#6366f1'
+                    return (
+                      <span
+                        key={item.id}
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+              {/* Desktop: text labels */}
+              <div className="hidden md:flex flex-col gap-0.5 mt-0.5 w-full">
                 {dayItems.slice(0, 3).map(item => {
                   const color = projects.find(p => p.id === item.projectId)?.color ?? '#6366f1'
                   return (

@@ -92,11 +92,17 @@ export function TasksPage() {
           />
         )}
         {selectedTask && (
-          <TaskDetailPanel
-            task={selectedTask}
-            projects={projects}
-            onClose={() => setSelectedTask(null)}
-          />
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/50 md:hidden"
+              onClick={() => setSelectedTask(null)}
+            />
+            <TaskDetailPanel
+              task={selectedTask}
+              projects={projects}
+              onClose={() => setSelectedTask(null)}
+            />
+          </>
         )}
       </div>
     </div>

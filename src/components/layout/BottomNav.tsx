@@ -7,43 +7,34 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ]
 
-export function Sidebar() {
+export function BottomNav() {
   return (
-    <aside className="hidden md:flex w-16 bg-slate-950 flex-col items-center py-4 gap-2 border-r border-slate-800 shrink-0">
-      {/* Logo */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mb-3">
-        <div className="w-3.5 h-3.5 rounded-sm bg-white/90" />
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950 border-t border-slate-800 pb-safe">
+      <div className="flex items-center justify-around px-2 pt-2">
+        {navItems.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            aria-label={label}
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 flex-1 py-1 min-h-[44px] justify-center transition-colors ${
+                isActive ? 'text-indigo-400' : 'text-slate-500'
+              }`
+            }
+          >
+            <Icon />
+            <span className="text-[10px] font-medium">{label}</span>
+          </NavLink>
+        ))}
       </div>
-
-      {navItems.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          aria-label={label}
-          className={({ isActive }) =>
-            `w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-              isActive
-                ? 'bg-slate-700 text-indigo-400'
-                : 'text-slate-500 hover:bg-slate-800 hover:text-slate-300'
-            }`
-          }
-        >
-          <Icon />
-        </NavLink>
-      ))}
-
-      {/* User avatar — bottom */}
-      <div className="mt-auto w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold">
-        P
-      </div>
-    </aside>
+    </nav>
   )
 }
 
 function HomeIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="4" />
       <circle cx="12" cy="12" r="9" strokeDasharray="2 3" />
     </svg>
@@ -52,7 +43,7 @@ function HomeIcon() {
 
 function TasksIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="8" y1="6" x2="21" y2="6" />
       <line x1="8" y1="12" x2="21" y2="12" />
       <line x1="8" y1="18" x2="21" y2="18" />
@@ -65,7 +56,7 @@ function TasksIcon() {
 
 function CalendarIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <line x1="16" y1="2" x2="16" y2="6" />
       <line x1="8" y1="2" x2="8" y2="6" />
@@ -76,7 +67,7 @@ function CalendarIcon() {
 
 function SettingsIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
