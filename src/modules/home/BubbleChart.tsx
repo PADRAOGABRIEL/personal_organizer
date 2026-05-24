@@ -28,7 +28,7 @@ interface BubbleChartProps {
 
 export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const simulationRef = useRef<d3.Simulation<BubbleNode, undefined> | null>(null)
+  const simulationRef = useRef<{ stop: () => void } | null>(null)
   const navigate = useNavigate()
 
   const draw = useCallback(() => {
@@ -169,7 +169,21 @@ export function BubbleChart({ projects, onEdit }: BubbleChartProps) {
       g.attr('transform', `translate(${tx},${ty}) scale(${scale})`)
     }
 
-    simulationRef.current = sim
+    // Gentle floating animation: each bubble drifts on its own sine/cosine phase
+    // so they move independently rather than all in sync.
+    const baseX = nodes.map(d => d.x ?? width / 2)
+    const baseY = nodes.map(d => d.y ?? height / 2)
+    const n = Math.max(nodes.length, 1)
+    const floatTimer = d3.timer(elapsed => {
+      nodes.forEach((d, i) => {
+        const phase = i * (Math.PI * 2 / n)
+        d.x = baseX[i] + Math.sin(elapsed * 0.001  + phase) * 5
+        d.y = baseY[i] + Math.cos(elapsed * 0.0013 + phase * 1.3) * 4
+      })
+      bubble.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`)
+    })
+
+    simulationRef.current = { stop: () => { sim.stop(); floatTimer.stop() } }
   }, [projects, navigate, onEdit])
 
   useEffect(() => {

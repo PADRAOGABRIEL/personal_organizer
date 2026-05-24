@@ -10,7 +10,6 @@ import { AddItemModal } from './AddItemModal'
 import { CalendarEventDetailPanel } from './CalendarEventDetailPanel'
 import { useCalendarData, getItemsForDay, type CalendarItem, useImportFromGoogleCalendar } from './useCalendar'
 import { TaskDetailPanel } from '../tasks/TaskDetailPanel'
-import { SkeletonBlock } from '../../components/SkeletonBlock'
 import { supabase } from '../../lib/supabase'
 import type { Project } from '../../types'
 
@@ -78,7 +77,7 @@ export function CalendarPage() {
     }
   }, [view, year, month, weekStart, selectedDay])
 
-  const { tasks, events, rawEvents, isLoading: isCalendarLoading } = useCalendarData(calStart, calEnd)
+  const { tasks, events, rawEvents } = useCalendarData(calStart, calEnd)
   const importGcal = useImportFromGoogleCalendar()
 
   const { data: projects = [] } = useQuery({
@@ -221,59 +220,49 @@ export function CalendarPage() {
       <TopBar action={action} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {isCalendarLoading ? (
-            <div className="grid grid-cols-7 gap-1 p-4 flex-1 content-start">
-              {Array.from({ length: 35 }).map((_, i) => (
-                <SkeletonBlock key={i} className="h-16" />
-              ))}
-            </div>
-          ) : (
+          {view === 'month' && (
             <>
-              {view === 'month' && (
-                <>
-                  <MonthGrid
-                    year={year}
-                    month={month}
-                    items={itemsMap}
-                    selectedDay={selectedDay}
-                    onSelectDay={handleSelectDay}
-                    projects={projects}
-                  />
-                  {selectedDay && (
-                    <DayPanel
-                      date={selectedDay}
-                      items={itemsMap[selectedDay] ?? []}
-                      projects={projects}
-                      onAddEvent={() => {
-                        setDragSlot(null)
-                        setShowAddModal(true)
-                      }}
-                      onItemClick={handleItemClick}
-                    />
-                  )}
-                </>
-              )}
-
-              {view === 'week' && (
-                <WeekGrid
-                  weekStart={weekStart}
-                  itemsByDate={itemsMap}
-                  projects={projects}
-                  onCreateAt={handleDragCreate}
-                  onItemClick={handleItemClick}
-                />
-              )}
-
-              {view === 'day' && (
-                <DayGrid
+              <MonthGrid
+                year={year}
+                month={month}
+                items={itemsMap}
+                selectedDay={selectedDay}
+                onSelectDay={handleSelectDay}
+                projects={projects}
+              />
+              {selectedDay && (
+                <DayPanel
                   date={selectedDay}
                   items={itemsMap[selectedDay] ?? []}
                   projects={projects}
-                  onCreateAt={handleDayCreate}
+                  onAddEvent={() => {
+                    setDragSlot(null)
+                    setShowAddModal(true)
+                  }}
                   onItemClick={handleItemClick}
                 />
               )}
             </>
+          )}
+
+          {view === 'week' && (
+            <WeekGrid
+              weekStart={weekStart}
+              itemsByDate={itemsMap}
+              projects={projects}
+              onCreateAt={handleDragCreate}
+              onItemClick={handleItemClick}
+            />
+          )}
+
+          {view === 'day' && (
+            <DayGrid
+              date={selectedDay}
+              items={itemsMap[selectedDay] ?? []}
+              projects={projects}
+              onCreateAt={handleDayCreate}
+              onItemClick={handleItemClick}
+            />
           )}
         </div>
         {detailPanel}

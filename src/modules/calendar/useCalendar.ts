@@ -118,7 +118,12 @@ export function useCalendarData(startDate: string, endDate: string) {
     tasks: tasksQuery.data ?? [],
     events,
     rawEvents,
-    isLoading: tasksQuery.isLoading || rawEventsQuery.isPending,
+    // Show skeleton only when data is absent AND actively fetching.
+    // Checking isFetching prevents infinite loading on error (data=undefined, isFetching=false).
+    // Checking data instead of isPending handles placeholderData correctly
+    // (isPending stays true even when placeholder provides data).
+    isLoading: (tasksQuery.data === undefined && tasksQuery.isFetching) ||
+               (rawEventsQuery.data === undefined && rawEventsQuery.isFetching),
   }
 }
 
