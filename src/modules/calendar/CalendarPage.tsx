@@ -101,9 +101,14 @@ export function CalendarPage() {
   // Build items map: date -> CalendarItem[]
   const itemsMap = useMemo(() => {
     const map: Record<string, CalendarItem[]> = {}
+    const toLocalDate = (iso: string) => {
+      const d = new Date(iso)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    }
     const allDays = new Set([
       ...tasks.map(t => t.due_date).filter(Boolean) as string[],
-      ...events.map(e => e.start_time.split('T')[0]),
+      ...events.map(e => toLocalDate(e.start_time)),
     ])
     allDays.forEach(date => {
       map[date] = getItemsForDay(date, tasks, events)
@@ -207,10 +212,15 @@ export function CalendarPage() {
     const realId = selectedItem.id.includes('__') ? selectedItem.id.split('__')[0] : selectedItem.id
     const event = rawEvents.find(e => e.id === realId)
     if (!event) return null
+    // For expanded occurrences of recurring events, override start/end with
+    // the occurrence's actual dates so the panel shows the correct date/time
+    const displayEvent = selectedItem.id.includes('__')
+      ? { ...event, start_time: selectedItem.startTime ?? event.start_time, end_time: selectedItem.endTime ?? event.end_time }
+      : event
     return (
       <>
         <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={closeDetailPanel} />
-        <CalendarEventDetailPanel event={event} projects={projects} onClose={closeDetailPanel} />
+        <CalendarEventDetailPanel event={displayEvent} projects={projects} onClose={closeDetailPanel} />
       </>
     )
   })()

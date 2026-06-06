@@ -48,6 +48,12 @@ export function getCalendarDays(year: number, month: number): CalendarDay[] {
   return days
 }
 
+function toLocalDateStr(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 export function getItemsForDay(
   dateStr: string,
   tasks: Task[],
@@ -67,7 +73,7 @@ export function getItemsForDay(
     }))
 
   const eventItems: CalendarItem[] = events
-    .filter(e => e.start_time.startsWith(dateStr))
+    .filter(e => toLocalDateStr(e.start_time) === dateStr)
     .map(e => ({
       id: e.id,
       title: e.title,
