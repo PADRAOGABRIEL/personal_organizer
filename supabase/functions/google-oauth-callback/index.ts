@@ -6,9 +6,9 @@ const supabase = createClient(
 )
 
 async function getSecrets(): Promise<Record<string, string>> {
-  const { data, error } = await supabase.from('app_secrets').select('key, value')
+  const { data, error } = await supabase.rpc('get_app_secrets_for_functions')
   if (error) throw new Error('Failed to load secrets: ' + error.message)
-  return Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
+  return (data ?? {}) as Record<string, string>
 }
 
 Deno.serve(async (req: Request) => {
@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
     secrets = await getSecrets()
   } catch (e) {
     console.error('[oauth-callback] failed to load secrets:', e)
-    return new Response('Internal error', { status: 500 })
+    return new Response('Internal error loading config', { status: 500 })
   }
 
   const APP_URL = secrets['app_url'] ?? 'http://localhost:5173'
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
 
   const tokens = await tokenRes.json()
   if (!tokenRes.ok) {
-    console.error('[oauth-callback] token exchange failed:', tokens)
+    console.error('[oauth-callback] token exchange failed:', JSON.stringify(tokens))
     return Response.redirect(`${APP_URL}/settings?error=token_exchange`, 302)
   }
 
