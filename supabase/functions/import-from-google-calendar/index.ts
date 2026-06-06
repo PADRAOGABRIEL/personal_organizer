@@ -165,6 +165,22 @@ Deno.serve(async (req: Request) => {
     let imported = 0
 
     if (rows.length > 0) {
+      // Before upserting recurring templates, clean up any previously imported
+      // individual instances from when singleEvents=true was used.
+      // Instance IDs follow the pattern "{templateId}_{datetime}", e.g.
+      // "abc123_20260602T090000Z". The template ID itself is just "abc123".
+      const recurringTemplateIds = rows
+        .filter(r => r.recurrence_rule !== null)
+        .map(r => r.google_event_id)
+
+      for (const templateId of recurringTemplateIds) {
+        await supabase
+          .from('calendar_events')
+          .delete()
+          .eq('user_id', userId)
+          .like('google_event_id', `${templateId}_%`)
+      }
+
       const { error: upsertError } = await supabase
         .from('calendar_events')
         .upsert(rows, { onConflict: 'google_event_id', ignoreDuplicates: false })
