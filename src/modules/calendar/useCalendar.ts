@@ -4,6 +4,29 @@ import { supabase } from '../../lib/supabase'
 import type { Task, CalendarEvent } from '../../types'
 import { expandRecurrences } from '../../lib/recurrence'
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
+async function syncEventToCalendar(eventId: string, action: 'upsert' | 'delete'): Promise<void> {
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/sync-event-to-calendar`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ eventId, action }),
+    })
+    const body = await res.json().catch(() => null)
+    if (!res.ok && body?.error !== 'not_connected' && body?.skipped !== 'google_originated') {
+      console.warn('[gcal] event sync failed:', res.status, body)
+    }
+  } catch (e) {
+    console.warn('[gcal] event sync network error:', e)
+  }
+}
+
 export interface CalendarDay {
   date: string          // 'YYYY-MM-DD'
   isCurrentMonth: boolean
@@ -156,8 +179,9 @@ export function useCreateCalendarEvent() {
       if (error) throw error
       return data as CalendarEvent
     },
-    onSuccess: () => {
+    onSuccess: (event) => {
       queryClient.invalidateQueries({ queryKey: ['calendar_events'] })
+      void syncEventToCalendar(event.id, 'upsert')
     },
   })
 }
@@ -172,8 +196,9 @@ export function useUpdateCalendarEvent() {
       if (error) throw error
       return data as CalendarEvent
     },
-    onSuccess: () => {
+    onSuccess: (event) => {
       queryClient.invalidateQueries({ queryKey: ['calendar_events'] })
+      void syncEventToCalendar(event.id, 'upsert')
     },
   })
 }
@@ -184,6 +209,8 @@ export function useDeleteCalendarEvent() {
     mutationFn: async (id: string) => {
       // Strip virtual recurrence suffix (e.g. "uuid__2024-01-01T...")
       const realId = id.includes('__') ? id.split('__')[0] : id
+      // Sync deletion to Google before removing the row (needs the row to exist)
+      await syncEventToCalendar(realId, 'delete')
       const { error } = await supabase.from('calendar_events').delete().eq('id', realId)
       if (error) throw error
     },
