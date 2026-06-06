@@ -12,11 +12,21 @@ async function getSecrets(): Promise<Record<string, string>> {
     .from('app_secrets')
     .select('key, value')
   if (error) {
-    console.error('[oauth-callback] app_secrets query error:', error)
+    console.error('[oauth-callback] app_secrets error:', error)
     return {}
   }
   const rows = data as { key: string; value: string }[]
   return Object.fromEntries(rows.map(r => [r.key, r.value]))
+}
+
+async function fetchJson(res: Response): Promise<unknown> {
+  const text = await res.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    console.error('[oauth-callback] non-JSON response', res.status, res.url, text.slice(0, 300))
+    throw new Error(`non_json_response:${res.status}:${res.url}`)
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -37,11 +47,11 @@ Deno.serve(async (req: Request) => {
     const GOOGLE_REDIRECT_URI = secrets['google_redirect_uri']
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
-      console.error('[oauth-callback] missing secrets:', Object.keys(secrets))
+      console.error('[oauth-callback] missing secrets, keys found:', Object.keys(secrets))
       return Response.redirect(`${APP_URL}/settings?error=config_missing`, 302)
     }
 
-    // Exchange code for tokens
+    // Exchange code for tokens — read as text first to avoid JSON parse errors on HTML error pages
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -54,25 +64,27 @@ Deno.serve(async (req: Request) => {
       }),
     })
 
-    const tokens = await tokenRes.json()
     if (!tokenRes.ok) {
-      console.error('[oauth-callback] token exchange failed:', JSON.stringify(tokens))
+      const body = await tokenRes.text()
+      console.error('[oauth-callback] token exchange failed', tokenRes.status, body.slice(0, 400))
       return Response.redirect(`${APP_URL}/settings?error=token_exchange`, 302)
     }
+
+    const tokens = await fetchJson(tokenRes) as Record<string, unknown>
 
     // Get user info from Google
     const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     })
-    const userInfo = await userRes.json()
+    const userInfo = await fetchJson(userRes) as Record<string, unknown>
 
     // Find the primary calendar ID
     const calRes = await fetch(
       'https://www.googleapis.com/calendar/v3/calendarList?minAccessRole=owner',
       { headers: { Authorization: `Bearer ${tokens.access_token}` } }
     )
-    const calList = await calRes.json()
-    const primaryCal = calList.items?.find((c: { primary?: boolean }) => c.primary)
+    const calList = await fetchJson(calRes) as { items?: { primary?: boolean; id?: string }[] }
+    const primaryCal = calList.items?.find(c => c.primary)
     const calendarId = primaryCal?.id ?? 'primary'
 
     // Resolve user_id: try Bearer JWT, fall back to email lookup
@@ -97,7 +109,7 @@ Deno.serve(async (req: Request) => {
       user_id: userId,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      expires_at: new Date(Date.now() + (tokens.expires_in as number) * 1000).toISOString(),
       connected_email: userInfo.email,
       calendar_id: calendarId,
       updated_at: new Date().toISOString(),
@@ -115,7 +127,7 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error('[oauth-callback] unhandled error:', err)
     return Response.redirect(
-      `${APP_URL}/settings?error=${encodeURIComponent('internal:' + String(err))}`,
+      `${APP_URL}/settings?error=${encodeURIComponent(String(err))}`,
       302
     )
   }
