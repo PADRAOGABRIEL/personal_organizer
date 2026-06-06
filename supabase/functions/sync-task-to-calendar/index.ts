@@ -39,9 +39,14 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { taskId, action, timeZone = 'UTC' } = await req.json()
+    const { taskId, action, timeZone = 'America/Sao_Paulo' } = await req.json()
 
-    const secrets = await getSecrets()
+    // Load secrets and task in parallel
+    const [secrets, taskResult] = await Promise.all([
+      getSecrets(),
+      supabase.from('tasks').select('*').eq('id', taskId).single(),
+    ])
+
     const GOOGLE_CLIENT_ID = secrets['google_client_id']
     const GOOGLE_CLIENT_SECRET = secrets['google_client_secret']
 
@@ -51,47 +56,55 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('id', taskId)
-      .single()
-
-    if (taskError || !task) {
+    if (taskResult.error || !taskResult.data) {
       return new Response(JSON.stringify({ error: 'task_not_found' }), {
         status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
-    const { data: tokenRow, error: tokenError } = await supabase
-      .from('google_oauth_tokens')
-      .select('*')
-      .eq('user_id', task.user_id)
-      .single()
+    const task = taskResult.data
 
-    if (tokenError || !tokenRow) {
+    // Load token and existing link in parallel
+    const [tokenResult, linkResult] = await Promise.all([
+      supabase.from('google_oauth_tokens').select('*').eq('user_id', task.user_id).single(),
+      supabase.from('task_calendar_links').select('*').eq('task_id', taskId).maybeSingle(),
+    ])
+
+    if (tokenResult.error || !tokenResult.data) {
       return new Response(JSON.stringify({ error: 'not_connected' }), {
         status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
+    const tokenRow = tokenResult.data
+    const link = linkResult.data
     const accessToken = await refreshAccessToken(tokenRow.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
     const calendarId = tokenRow.calendar_id || 'primary'
 
+    // --- DELETE ---
     if (action === 'delete') {
-      if (task.google_event_id) {
+      if (link?.google_event_id) {
         await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${task.google_event_id}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${link.google_event_id}`,
           { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }
         )
-        await supabase.from('tasks').update({ google_event_id: null }).eq('id', taskId)
+        await supabase.from('task_calendar_links').delete().eq('task_id', taskId)
       }
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
+    // --- UPSERT ---
     if (!task.due_date) {
+      // No due date → remove from Google if it was there before
+      if (link?.google_event_id) {
+        await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${link.google_event_id}`,
+          { method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        await supabase.from('task_calendar_links').delete().eq('task_id', taskId)
+      }
       return new Response(JSON.stringify({ skipped: 'no_due_date' }), {
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
@@ -119,12 +132,13 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let googleEventId = task.google_event_id
     let calRes: Response
+    const existingEventId = link?.google_event_id
 
-    if (googleEventId) {
+    if (existingEventId) {
+      // Update existing event
       calRes = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${googleEventId}`,
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${existingEventId}`,
         {
           method: 'PUT',
           headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -132,6 +146,7 @@ Deno.serve(async (req: Request) => {
         }
       )
     } else {
+      // Create new event
       calRes = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
         {
@@ -145,10 +160,15 @@ Deno.serve(async (req: Request) => {
     const created = await calRes.json()
     if (!calRes.ok) throw new Error(`GCal API error: ${JSON.stringify(created)}`)
 
-    googleEventId = created.id
-    await supabase.from('tasks').update({ google_event_id: googleEventId }).eq('id', taskId)
+    // Save the link (upsert by task_id)
+    await supabase.from('task_calendar_links').upsert({
+      task_id: taskId,
+      google_event_id: created.id,
+      calendar_id: calendarId,
+      synced_at: new Date().toISOString(),
+    }, { onConflict: 'task_id' })
 
-    return new Response(JSON.stringify({ ok: true, googleEventId }), {
+    return new Response(JSON.stringify({ ok: true, googleEventId: created.id }), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   } catch (err) {
