@@ -80,7 +80,12 @@ export function CalendarEventDetailPanel({ event, projects, onClose }: CalendarE
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
-        <span className="text-slate-400 text-xs uppercase tracking-wider">Evento</span>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 text-xs uppercase tracking-wider">Evento</span>
+          {event.google_event_id && (
+            <span className="text-xs bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded">Google</span>
+          )}
+        </div>
         <button
           aria-label="Fechar painel"
           onClick={onClose}

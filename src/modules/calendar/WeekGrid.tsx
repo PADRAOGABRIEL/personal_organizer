@@ -11,8 +11,8 @@ interface WeekGridProps {
 }
 
 const HOUR_HEIGHT = 56  // px per hour
-const DAY_START = 7     // 07:00 visible
-const DAY_END = 23      // 23:00 visible
+const DAY_START = 0     // 00:00 visible
+const DAY_END = 24      // 24:00 visible
 const VISIBLE_HOURS = DAY_END - DAY_START
 const TOTAL_HEIGHT = VISIBLE_HOURS * HOUR_HEIGHT
 
@@ -121,6 +121,7 @@ export function WeekGrid({ weekStart, itemsByDate, projects, onCreateAt, onItemC
         <div
           key={item.id}
           onClick={() => onItemClick?.(item)}
+          onMouseDown={e => e.stopPropagation()}
           className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 text-xs text-white overflow-hidden cursor-pointer hover:brightness-110 select-none"
           style={{ top, height, backgroundColor: color, zIndex: 2 }}
         >
@@ -138,6 +139,7 @@ export function WeekGrid({ weekStart, itemsByDate, projects, onCreateAt, onItemC
         <div
           key={item.id}
           onClick={() => onItemClick?.(item)}
+          onMouseDown={e => e.stopPropagation()}
           className="rounded px-1.5 py-0.5 text-xs text-white truncate cursor-pointer hover:brightness-110"
           style={{ backgroundColor: color }}
         >

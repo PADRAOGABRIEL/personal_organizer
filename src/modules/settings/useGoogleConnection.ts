@@ -33,17 +33,11 @@ export function useDisconnectGoogle() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
-      const { error } = await supabase
-        .from('google_oauth_tokens')
-        .delete()
-        .eq('user_id', session.user.id)
+      const { error } = await supabase.rpc('disconnect_google')
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['google-connection'] })
-      queryClient.invalidateQueries({ queryKey: ['google_connection'] })
     },
   })
 }

@@ -11,8 +11,8 @@ interface DayGridProps {
 }
 
 const HOUR_HEIGHT = 64
-const DAY_START = 7
-const DAY_END = 23
+const DAY_START = 0
+const DAY_END = 24
 const VISIBLE_HOURS = DAY_END - DAY_START
 const TOTAL_HEIGHT = VISIBLE_HOURS * HOUR_HEIGHT
 
@@ -167,6 +167,7 @@ export function DayGrid({ date, items, projects, onCreateAt, onItemClick }: DayG
               <div
                 key={item.id}
                 onClick={() => onItemClick?.(item)}
+                onMouseDown={e => e.stopPropagation()}
                 className="absolute left-1 right-1 rounded-lg px-2 py-1 text-xs text-white overflow-hidden cursor-pointer hover:brightness-110"
                 style={{ top, height, backgroundColor: color, zIndex: 2 }}
               >

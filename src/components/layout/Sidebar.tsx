@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 
 const navItems = [
   { to: '/', label: 'Home', icon: HomeIcon },
@@ -11,9 +11,13 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-16 bg-slate-950 flex-col items-center py-4 gap-2 border-r border-slate-800 shrink-0">
       {/* Logo */}
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mb-3">
-        <div className="w-3.5 h-3.5 rounded-sm bg-white/90" />
-      </div>
+      <Link to="/" aria-label="Ir para Home" className="mb-3 shrink-0">
+        <svg width="36" height="36" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" fill="#6366f1"/>
+          <circle cx="16" cy="16" r="10" fill="#818cf8" opacity="0.5"/>
+          <circle cx="11" cy="11" r="3" fill="white" opacity="0.6"/>
+        </svg>
+      </Link>
 
       {navItems.map(({ to, label, icon: Icon }) => (
         <NavLink
