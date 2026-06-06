@@ -15,10 +15,17 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (params.get('connected') === '1') {
-      setBanner({ kind: 'success', text: 'Google Calendar conectado.' })
+      setBanner({ kind: 'success', text: 'Google Calendar conectado. Sincronizando eventos…' })
       const next = new URLSearchParams(params)
       next.delete('connected')
       setParams(next, { replace: true })
+      // Auto-sync immediately after connecting
+      syncFromGoogle.mutate(undefined, {
+        onSuccess: (result) =>
+          setBanner({ kind: 'success', text: `Conectado e sincronizado: ${result.imported} evento(s) importado(s).` }),
+        onError: () =>
+          setBanner({ kind: 'success', text: 'Google Calendar conectado.' }),
+      })
     } else if (params.get('error')) {
       setBanner({ kind: 'error', text: `Falha na conexão: ${params.get('error')}` })
       const next = new URLSearchParams(params)

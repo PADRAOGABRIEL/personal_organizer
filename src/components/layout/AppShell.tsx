@@ -4,11 +4,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
+import { useAutoSync } from '../../modules/settings/useAutoSync'
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 
 export function AppShell() {
   const queryClient = useQueryClient()
+  useAutoSync()
 
   // Prefetch tasks and current-month calendar events in the background so that
   // navigating to Calendar is instant instead of waiting for a fresh fetch.
