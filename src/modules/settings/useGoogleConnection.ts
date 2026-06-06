@@ -37,6 +37,7 @@ export function useDisconnectGoogle() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['google-connection'] })
+      queryClient.invalidateQueries({ queryKey: ['calendar_events'] })
     },
   })
 }
