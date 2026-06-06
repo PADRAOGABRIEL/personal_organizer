@@ -33,6 +33,30 @@ async function refreshAccessToken(refreshToken: string, clientId: string, client
   return body.access_token as string
 }
 
+// Converts Google's RRULE to our internal format: "FREQ:INTERVAL" or "WEEKLY:INTERVAL:BYDAY"
+// e.g. "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;INTERVAL=2" → "WEEKLY:2:MO,WE"
+function parseGoogleRRule(recurrence: string[]): string | null {
+  const rruleLine = recurrence?.find(r => r.startsWith('RRULE:'))
+  if (!rruleLine) return null
+
+  const params = Object.fromEntries(
+    rruleLine.replace('RRULE:', '').split(';').map(p => {
+      const [k, v] = p.split('=')
+      return [k, v]
+    })
+  )
+
+  const freq = params['FREQ']
+  const interval = parseInt(params['INTERVAL'] ?? '1', 10)
+  const byday = params['BYDAY'] // e.g. "MO,WE,FR"
+
+  if (freq === 'DAILY')   return `DAILY:${interval}`
+  if (freq === 'WEEKLY')  return byday ? `WEEKLY:${interval}:${byday}` : `WEEKLY:${interval}`
+  if (freq === 'MONTHLY') return `MONTHLY:${interval}`
+  if (freq === 'YEARLY')  return `YEARLY:${interval}`
+  return null
+}
+
 interface GCalEvent {
   id: string
   summary?: string
@@ -40,6 +64,8 @@ interface GCalEvent {
   location?: string
   start: { dateTime?: string; date?: string }
   end: { dateTime?: string; date?: string }
+  recurrence?: string[]          // present on recurring templates
+  recurringEventId?: string      // present on exception instances
   extendedProperties?: { private?: { source?: string } }
   status?: string
 }
@@ -50,7 +76,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Verify caller's JWT and extract user_id
+    // Verify caller JWT
     const authHeader = req.headers.get('Authorization') ?? ''
     const jwt = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt)
@@ -63,7 +89,12 @@ Deno.serve(async (req: Request) => {
     const { timeMin, timeMax } = await req.json()
     const userId = user.id
 
-    const secrets = await getSecrets()
+    // Load secrets and token in parallel
+    const [secrets, tokenResult] = await Promise.all([
+      getSecrets(),
+      supabase.from('google_oauth_tokens').select('*').eq('user_id', userId).single(),
+    ])
+
     const GOOGLE_CLIENT_ID = secrets['google_client_id']
     const GOOGLE_CLIENT_SECRET = secrets['google_client_secret']
 
@@ -73,26 +104,22 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: tokenRow, error: tokenError } = await supabase
-      .from('google_oauth_tokens')
-      .select('*')
-      .eq('user_id', userId)
-      .single()
-
-    if (tokenError || !tokenRow) {
+    if (tokenResult.error || !tokenResult.data) {
       return new Response(JSON.stringify({ error: 'not_connected' }), {
         status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
+    const tokenRow = tokenResult.data
     const accessToken = await refreshAccessToken(tokenRow.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
     const calendarId = tokenRow.calendar_id || 'primary'
 
+    // singleEvents: false → returns recurring series as one template (with recurrence[] field)
+    // instead of expanding each occurrence. This lets us store the recurrence rule.
     const params = new URLSearchParams({
       timeMin,
       timeMax,
-      singleEvents: 'true',
-      orderBy: 'startTime',
+      singleEvents: 'false',
       maxResults: '500',
     })
 
@@ -108,30 +135,45 @@ Deno.serve(async (req: Request) => {
 
     const { items }: { items: GCalEvent[] } = await eventsRes.json()
 
+    const rows = (items ?? [])
+      .filter(e => e.status !== 'cancelled')
+      // Skip exception instances of a recurring series (they have recurringEventId)
+      // We keep the template (no recurringEventId) which carries the recurrence rule
+      .filter(e => !e.recurringEventId)
+      // Skip events that originated from this app (avoid echo loop)
+      .filter(e => e.extendedProperties?.private?.source !== 'personal_organizer')
+      .map(e => {
+        const startTime = e.start.dateTime ?? `${e.start.date}T00:00:00Z`
+        const endTime = e.end.dateTime ?? (e.end.date ? `${e.end.date}T00:00:00Z` : null)
+        const allDay = !e.start.dateTime
+        const recurrenceRule = e.recurrence ? parseGoogleRRule(e.recurrence) : null
+
+        return {
+          user_id: userId,
+          title: e.summary ?? '(sem título)',
+          description: e.description ?? null,
+          location: e.location ?? null,
+          start_time: startTime,
+          end_time: endTime,
+          all_day: allDay,
+          google_event_id: e.id,
+          recurrence_rule: recurrenceRule,
+        }
+      })
+
+    const skipped = (items ?? []).length - rows.length
     let imported = 0
-    let skipped = 0
 
-    for (const event of items ?? []) {
-      if (event.status === 'cancelled') { skipped++; continue }
-      if (event.extendedProperties?.private?.source === 'personal_organizer') { skipped++; continue }
+    if (rows.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('calendar_events')
+        .upsert(rows, { onConflict: 'google_event_id', ignoreDuplicates: false })
 
-      const startTime = event.start.dateTime ?? `${event.start.date}T00:00:00Z`
-      const endTime = event.end.dateTime ?? (event.end.date ? `${event.end.date}T00:00:00Z` : null)
-      const allDay = !event.start.dateTime
-
-      const { error } = await supabase.from('calendar_events').upsert({
-        user_id: userId,
-        title: event.summary ?? '(sem título)',
-        description: event.description ?? null,
-        location: event.location ?? null,
-        start_time: startTime,
-        end_time: endTime,
-        all_day: allDay,
-        google_event_id: event.id,
-      }, { onConflict: 'google_event_id', ignoreDuplicates: false })
-
-      if (error) { console.error('[import-gcal] upsert error:', error); skipped++ }
-      else { imported++ }
+      if (upsertError) {
+        console.error('[import-gcal] batch upsert error:', upsertError)
+        throw new Error(`Batch upsert failed: ${upsertError.message}`)
+      }
+      imported = rows.length
     }
 
     await supabase

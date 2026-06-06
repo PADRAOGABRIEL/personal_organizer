@@ -59,12 +59,20 @@ export function CalendarEventDetailPanel({ event, projects, onClose }: CalendarE
     })
   }, [event, updateEvent, title, description, allDay, startTime, endTime, location, projectId, recurrenceRule])
 
-  const RECURRENCE_OPTIONS = [
+  const BASE_RECURRENCE_OPTIONS = [
     { label: 'Não repete', rule: null },
     { label: 'Todo dia', rule: 'DAILY:1' },
     { label: 'Toda semana', rule: 'WEEKLY:1' },
     { label: 'Todo mês', rule: 'MONTHLY:1' },
   ]
+  // If the current event has a recurrence rule not in the base list (e.g. imported
+  // from Google with specific weekdays like WEEKLY:1:MO,WE,FR), surface it as a
+  // read-only option so it stays selected and the label shows correctly.
+  const hasCustomRule = recurrenceRule &&
+    !BASE_RECURRENCE_OPTIONS.some(o => o.rule === recurrenceRule)
+  const RECURRENCE_OPTIONS = hasCustomRule
+    ? [...BASE_RECURRENCE_OPTIONS, { label: recurrenceLabel(recurrenceRule!), rule: recurrenceRule }]
+    : BASE_RECURRENCE_OPTIONS
 
   return (
     <aside className="
