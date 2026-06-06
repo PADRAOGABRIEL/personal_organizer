@@ -13,7 +13,6 @@ const APP_URL = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
-  const state = url.searchParams.get('state') ?? '/'
   const error = url.searchParams.get('error')
 
   if (error || !code) {
@@ -39,7 +38,7 @@ Deno.serve(async (req: Request) => {
     return Response.redirect(`${APP_URL}/settings?error=token_exchange`, 302)
   }
 
-  // Get user info
+  // Get user info from Google
   const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   })
@@ -54,20 +53,20 @@ Deno.serve(async (req: Request) => {
   const primaryCal = calList.items?.find((c: { primary?: boolean }) => c.primary)
   const calendarId = primaryCal?.id ?? 'primary'
 
-  // We need the user_id — decode it from the state or require the user to be logged in
-  // The state is the redirectBack URL; we extract user_id from the supabase JWT if available
-  const authHeader = req.headers.get('Authorization')
+  // Resolve the Supabase user_id:
+  // 1. Try the Bearer JWT from the request
   let userId: string | null = null
+  const authHeader = req.headers.get('Authorization')
   if (authHeader?.startsWith('Bearer ')) {
     const jwt = authHeader.slice(7)
     const { data } = await supabase.auth.getUser(jwt)
     userId = data.user?.id ?? null
   }
 
-  // Fall back: look up user by google email
+  // 2. Fall back: match by Google email in auth.users
   if (!userId) {
-    const { data: users } = await supabase.auth.admin.listUsers()
-    const match = users.users.find(u => u.email === userInfo.email)
+    const { data: listData } = await supabase.auth.admin.listUsers()
+    const match = listData?.users.find(u => u.email === userInfo.email)
     userId = match?.id ?? null
   }
 
@@ -75,15 +74,24 @@ Deno.serve(async (req: Request) => {
     return Response.redirect(`${APP_URL}/settings?error=no_user`, 302)
   }
 
-  // Upsert token row
-  await supabase.from('google_oauth_tokens').upsert({
+  // Upsert token row (conflict on user_id for multi-user support)
+  const { error: dbError } = await supabase.from('google_oauth_tokens').upsert({
     user_id: userId,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-    email: userInfo.email,
+    connected_email: userInfo.email,
     calendar_id: calendarId,
+    updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
+
+  if (dbError) {
+    console.error('[oauth-callback] db upsert failed:', dbError)
+    return Response.redirect(
+      `${APP_URL}/settings?error=${encodeURIComponent('db_save_failed:' + dbError.message)}`,
+      302
+    )
+  }
 
   return Response.redirect(`${APP_URL}/settings?connected=1`, 302)
 })
