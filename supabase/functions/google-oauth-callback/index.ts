@@ -78,14 +78,7 @@ Deno.serve(async (req: Request) => {
     })
     const userInfo = await fetchJson(userRes) as Record<string, unknown>
 
-    // Find the primary calendar ID
-    const calRes = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendarList?minAccessRole=owner',
-      { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-    )
-    const calList = await fetchJson(calRes) as { items?: { primary?: boolean; id?: string }[] }
-    const primaryCal = calList.items?.find(c => c.primary)
-    const calendarId = primaryCal?.id ?? 'primary'
+    const calendarId = 'primary'
 
     // Resolve user_id: try Bearer JWT, fall back to email lookup
     let userId: string | null = null
