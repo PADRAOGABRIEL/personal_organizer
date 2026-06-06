@@ -1,14 +1,35 @@
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!
-const GOOGLE_REDIRECT_URI = Deno.env.get('GOOGLE_REDIRECT_URI')!
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+)
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ')
 
-Deno.serve((req: Request) => {
+async function getSecrets(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from('app_secrets').select('key, value')
+  if (error) throw new Error('Failed to load secrets: ' + error.message)
+  return Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
+}
+
+Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
   const redirectBack = url.searchParams.get('redirect') ?? '/'
+
+  let secrets: Record<string, string>
+  try {
+    secrets = await getSecrets()
+  } catch (e) {
+    console.error('[oauth-start] failed to load secrets:', e)
+    return new Response('Internal error', { status: 500 })
+  }
+
+  const GOOGLE_CLIENT_ID = secrets['google_client_id']
+  const GOOGLE_REDIRECT_URI = secrets['google_redirect_uri']
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,

@@ -5,15 +5,29 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!
-const GOOGLE_REDIRECT_URI = Deno.env.get('GOOGLE_REDIRECT_URI')!
-const APP_URL = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
+async function getSecrets(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from('app_secrets').select('key, value')
+  if (error) throw new Error('Failed to load secrets: ' + error.message)
+  return Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
+}
 
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
+
+  let secrets: Record<string, string>
+  try {
+    secrets = await getSecrets()
+  } catch (e) {
+    console.error('[oauth-callback] failed to load secrets:', e)
+    return new Response('Internal error', { status: 500 })
+  }
+
+  const APP_URL = secrets['app_url'] ?? 'http://localhost:5173'
+  const GOOGLE_CLIENT_ID = secrets['google_client_id']
+  const GOOGLE_CLIENT_SECRET = secrets['google_client_secret']
+  const GOOGLE_REDIRECT_URI = secrets['google_redirect_uri']
 
   if (error || !code) {
     return Response.redirect(`${APP_URL}/settings?error=oauth_denied`, 302)
