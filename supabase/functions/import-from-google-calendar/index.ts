@@ -5,16 +5,25 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-async function refreshAccessToken(refreshToken: string): Promise<string> {
+async function getSecrets(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from('app_secrets').select('key, value')
+  if (error) { console.error('[import-gcal] secrets error:', error); return {} }
+  return Object.fromEntries((data as { key: string; value: string }[]).map(r => [r.key, r.value]))
+}
+
+async function refreshAccessToken(refreshToken: string, clientId: string, clientSecret: string): Promise<string> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
@@ -36,17 +45,33 @@ interface GCalEvent {
 }
 
 Deno.serve(async (req: Request) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
-
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { status: 200, headers: CORS_HEADERS })
   }
 
   try {
-    const { userId, timeMin, timeMax } = await req.json()
+    // Verify caller's JWT and extract user_id
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const jwt = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt)
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { timeMin, timeMax } = await req.json()
+    const userId = user.id
+
+    const secrets = await getSecrets()
+    const GOOGLE_CLIENT_ID = secrets['google_client_id']
+    const GOOGLE_CLIENT_SECRET = secrets['google_client_secret']
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return new Response(JSON.stringify({ error: 'config_missing' }), {
+        status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { data: tokenRow, error: tokenError } = await supabase
       .from('google_oauth_tokens')
@@ -56,11 +81,11 @@ Deno.serve(async (req: Request) => {
 
     if (tokenError || !tokenRow) {
       return new Response(JSON.stringify({ error: 'not_connected' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
-    const accessToken = await refreshAccessToken(tokenRow.refresh_token)
+    const accessToken = await refreshAccessToken(tokenRow.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
     const calendarId = tokenRow.calendar_id || 'primary'
 
     const params = new URLSearchParams({
@@ -87,13 +112,8 @@ Deno.serve(async (req: Request) => {
     let skipped = 0
 
     for (const event of items ?? []) {
-      // Skip cancelled events
       if (event.status === 'cancelled') { skipped++; continue }
-
-      // Skip events that originated from this app (avoid echo loop)
-      if (event.extendedProperties?.private?.source === 'personal_organizer') {
-        skipped++; continue
-      }
+      if (event.extendedProperties?.private?.source === 'personal_organizer') { skipped++; continue }
 
       const startTime = event.start.dateTime ?? `${event.start.date}T00:00:00Z`
       const endTime = event.end.dateTime ?? (event.end.date ? `${event.end.date}T00:00:00Z` : null)
@@ -110,27 +130,22 @@ Deno.serve(async (req: Request) => {
         google_event_id: event.id,
       }, { onConflict: 'google_event_id', ignoreDuplicates: false })
 
-      if (error) {
-        console.error('[import-gcal] upsert error:', error)
-        skipped++
-      } else {
-        imported++
-      }
+      if (error) { console.error('[import-gcal] upsert error:', error); skipped++ }
+      else { imported++ }
     }
 
-    // Update last synced timestamp
     await supabase
       .from('google_oauth_tokens')
-      .update({ last_synced_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('user_id', userId)
 
     return new Response(JSON.stringify({ imported, skipped }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error('[import-from-google-calendar]', err)
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 })

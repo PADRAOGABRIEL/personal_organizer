@@ -5,16 +5,25 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')!
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')!
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-async function refreshAccessToken(refreshToken: string): Promise<string> {
+async function getSecrets(): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from('app_secrets').select('key, value')
+  if (error) { console.error('[sync-task] secrets error:', error); return {} }
+  return Object.fromEntries((data as { key: string; value: string }[]).map(r => [r.key, r.value]))
+}
+
+async function refreshAccessToken(refreshToken: string, clientId: string, clientSecret: string): Promise<string> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
@@ -25,43 +34,48 @@ async function refreshAccessToken(refreshToken: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
-
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { status: 200, headers: CORS_HEADERS })
   }
 
   try {
     const { taskId, action, timeZone = 'UTC' } = await req.json()
 
-    // Get task
+    const secrets = await getSecrets()
+    const GOOGLE_CLIENT_ID = secrets['google_client_id']
+    const GOOGLE_CLIENT_SECRET = secrets['google_client_secret']
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      return new Response(JSON.stringify({ error: 'config_missing' }), {
+        status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { data: task, error: taskError } = await supabase
       .from('tasks')
       .select('*')
       .eq('id', taskId)
       .single()
+
     if (taskError || !task) {
       return new Response(JSON.stringify({ error: 'task_not_found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
-    // Get Google tokens for this user
     const { data: tokenRow, error: tokenError } = await supabase
       .from('google_oauth_tokens')
       .select('*')
       .eq('user_id', task.user_id)
       .single()
+
     if (tokenError || !tokenRow) {
       return new Response(JSON.stringify({ error: 'not_connected' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
-    const accessToken = await refreshAccessToken(tokenRow.refresh_token)
+    const accessToken = await refreshAccessToken(tokenRow.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
     const calendarId = tokenRow.calendar_id || 'primary'
 
     if (action === 'delete') {
@@ -73,14 +87,13 @@ Deno.serve(async (req: Request) => {
         await supabase.from('tasks').update({ google_event_id: null }).eq('id', taskId)
       }
       return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
-    // Build event body
     if (!task.due_date) {
       return new Response(JSON.stringify({ skipped: 'no_due_date' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       })
     }
 
@@ -107,10 +120,10 @@ Deno.serve(async (req: Request) => {
     }
 
     let googleEventId = task.google_event_id
-    let res: Response
+    let calRes: Response
 
     if (googleEventId) {
-      res = await fetch(
+      calRes = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${googleEventId}`,
         {
           method: 'PUT',
@@ -119,7 +132,7 @@ Deno.serve(async (req: Request) => {
         }
       )
     } else {
-      res = await fetch(
+      calRes = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
         {
           method: 'POST',
@@ -129,19 +142,19 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const created = await res.json()
-    if (!res.ok) throw new Error(`GCal API error: ${JSON.stringify(created)}`)
+    const created = await calRes.json()
+    if (!calRes.ok) throw new Error(`GCal API error: ${JSON.stringify(created)}`)
 
     googleEventId = created.id
     await supabase.from('tasks').update({ google_event_id: googleEventId }).eq('id', taskId)
 
     return new Response(JSON.stringify({ ok: true, googleEventId }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error('[sync-task-to-calendar]', err)
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { corsHeaders, 'Content-Type': 'application/json' } as HeadersInit,
+      status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     })
   }
 })
